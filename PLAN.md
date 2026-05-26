@@ -12,7 +12,7 @@ Three values, in order:
 
 1. **The reading line is sacred.** Every prose surface caps at 650 px and runs at 1.78 line-height.
 2. **Typography is the design system.** Color is restrained; spacing carries the eye. The brand is the wordmark and three serifs.
-3. **Auth and CMS are private.** Only the owner email reaches `/studio`. Public users see only published rows.
+3. **Auth and CMS are private.** Only the env-backed `STUDIO_USERNAME` + `STUDIO_PASSWORD` pair reaches `/studio`. Public users see only published rows.
 
 ---
 
@@ -23,10 +23,13 @@ Three values, in order:
 | Framework | Next.js 15 App Router (TS, src dir) | SSR for reading SEO, server actions for CMS, image optimization |
 | Styling | Tailwind v3.4 + CSS vars | Tokens drive theme switching without re-rendering |
 | Motion | Framer Motion | Physics-based fades, scroll-aware header, reading progress spring |
-| DB + Auth | Supabase (Postgres + Magic Link OTP) | RLS for public-read gating, simple single-tenant auth, free tier |
+| DB | Supabase Postgres (RLS) | Public-read gating, secret-key writes from server actions, free tier |
+| Auth | Env credential + HMAC-signed cookie (Node `crypto`) | Single-tenant. No third-party auth dependency. See § 8. |
 | Editor (Phase 1) | TipTap (ProseMirror) | Custom Poetry node for whitespace-preserved verse |
 | Fonts | Libre Baskerville, Instrument Serif italic, Figtree, Geist Mono, Highcrest | See § 5 |
 | Image host | Picsum placeholders today → Supabase Storage tomorrow | Phase 2 swap |
+| Hosting | Vercel | Auto-deploy on push to `main`. Project `marahuyo`, org `jae-s-projects`, alias `marahuyoph.vercel.app`. |
+| Git | GitHub `jlnzccy/marahuyo` over SSH | Per-account key at `~/.ssh/id_ed25519_jlnzccy`, scoped in `~/.ssh/config`. |
 
 ---
 
@@ -40,8 +43,8 @@ Three values, in order:
 /read/[slug]                 Standalone reader (poems, essays, oneshots)
 /about                       Editorial bio
 /contact                     Email + socials
-/studio                      Private CMS (owner only) — empty shell today
-/studio/login                Magic-link sign-in
+/studio                      Private CMS (owner only)
+/studio/login                Username + password sign-in
 ```
 
 All public reading routes are statically generated via `generateStaticParams`. Studio routes are dynamic and gated by `getStudioSession`.
@@ -116,22 +119,50 @@ Body content is stored as HTML for now. If the CMS needs structured JSON later (
 
 ---
 
-## 8. Studio (CMS) architecture
+## 8. Studio auth + CMS architecture
 
-Two layers of defense:
+### 8.1 — Auth model
 
-1. **Middleware** (`/middleware.ts`) — runs on every `/studio/*` request, refreshes Supabase session cookies.
-2. **Layout guard** (`/studio/(protected)/layout.tsx`) — calls `getStudioSession`, redirects to `/studio/login` if no session, redirects to `/` if the session's email is not the owner.
+Single tenant. No Supabase auth, no magic link, no user table. The studio has exactly one valid identity, defined entirely in env vars:
 
-The login page lives at `/studio/login` and uses a route-group split (`(protected)` vs `login`) so the parent guard does NOT apply to login — no redirect loop.
+```
+STUDIO_USERNAME=jasthtcs
+STUDIO_PASSWORD=chanjae13
+STUDIO_SESSION_SECRET=<32-byte hex>
+```
 
-All write actions will be **server actions** that:
+Local + production use **different** `STUDIO_SESSION_SECRET` values so compromise of one doesn't carry to the other. Rotating the secret invalidates all active sessions immediately.
 
-1. Re-check `getStudioSession().isOwner` (defense in depth — middleware can be bypassed by misconfigured `matcher`).
-2. Use `getAdminSupabase()` (the secret-key client) so writes work regardless of RLS.
-3. Return typed `{ status, message }` results consumable by `useActionState`.
+### 8.2 — Session cookie
 
-When Supabase env vars are absent, `/studio` renders a graceful setup notice instead of crashing. That fallback should stay.
+After a successful sign-in (`signIn` in `src/app/studio/actions.ts`):
+
+- Both username and password are compared against env via `crypto.timingSafeEqual` (length-checked first; otherwise the function throws on length mismatch).
+- On match, the server sets a cookie `studio_session` with value `<username>.<hex_hmac>` where `hex_hmac = HMAC-SHA256(username, STUDIO_SESSION_SECRET)`.
+- Cookie attributes: `HttpOnly`, `SameSite=Lax`, `Secure` in production, `Path=/`, `Max-Age=30 days`.
+- Sign-out (`signOut`) deletes the cookie.
+
+Verification (`verifySessionCookie` in `src/lib/studio-session.ts`):
+
+- Splits at the first `.`, recomputes the HMAC, compares with `timingSafeEqual` on equal-length buffers.
+- Any mismatch returns `null`. No DB read, no network call.
+
+`src/lib/studio-session.ts` is intentionally separate from `src/app/studio/actions.ts` because Next.js requires `"use server"` files to export only async functions. The HMAC helpers are sync, so they live outside the action file.
+
+### 8.3 — Route guards
+
+1. **Layout guard** (`src/app/studio/(protected)/layout.tsx`) — calls `getStudioSession()`. If null → redirect `/studio/login`. If `isOwner` is false → redirect `/`. With env-backed auth, `isOwner === true` whenever the cookie verifies; the field stays for future expansion.
+2. **Login page** (`src/app/studio/login/page.tsx`) — sits *outside* the `(protected)` route group so the layout guard does not apply. If you arrive already authenticated, it redirects to `/studio`.
+
+`middleware.ts` at the repo root still refreshes a Supabase auth cookie. This is **dead code** under the new auth model — nothing reads it. Remove or no-op when convenient; see `TODO.md` Phase 0.
+
+### 8.4 — Server-action writes
+
+All studio write actions live under `src/app/studio/(protected)/_actions/`. Each one:
+
+1. Re-checks `getStudioSession().isOwner` (defense in depth — never trust the layout alone).
+2. Uses `getAdminSupabase()` (the secret-key client) so writes work regardless of RLS.
+3. Returns typed `{ status, message }` results consumable by `useActionState`.
 
 ---
 
@@ -143,20 +174,24 @@ src/
     <route>/page.tsx       Server component by default
     <route>/<child>.tsx    Co-located client components for that route
     studio/_components/    Shared studio UI (underscore = non-routing)
+    studio/actions.ts      Sign-in / sign-out server actions (auth only)
+    studio/(protected)/_actions/  Domain write actions (works, chapters, …)
   components/              Reused across routes
   lib/                     Pure logic (no JSX)
-    supabase/              All Supabase clients + auth helpers + types
+    studio-session.ts      HMAC sign + verify helpers (server-only, sync)
+    supabase/              All Supabase clients + read helpers + types
   types/                   Domain types
   assets/fonts/            Local font files (Highcrest.ttf today)
 public/                    Static, served as-is (favicon.svg)
 supabase/migrations/       SQL migrations
-middleware.ts              Project root
+middleware.ts              Legacy Supabase cookie refresh — slated for removal
 ```
 
 **Server vs client rules of thumb:**
 
 - Pages stay server components unless they need state. If a page needs a small client island, extract it to a `*-client.tsx` or co-located component with `"use client"`.
 - Lib files that import `next/headers`, `next/cookies`, or call `cookies()` must use `import "server-only"`.
+- Files with `"use server"` may export *only* async functions. Sync helpers (HMAC sign / verify) live in plain server-only modules and are imported by both actions and the layout-side session lookup.
 - Framer Motion components require `"use client"` somewhere up the tree. Wrap once in a primitive (`FadeUp`, `Stagger`) rather than scattering directives.
 
 ---
@@ -171,12 +206,15 @@ middleware.ts              Project root
 
 ## 11. Decisions worth remembering
 
+- **Auth is intentionally not Supabase.** Single-tenant + no email flow = no need for an OAuth/OTP provider. Env-backed credentials with an HMAC cookie are simpler, have no inbox dependency, and cannot be impersonated without leaking the password *and* the session secret. Trade-off: no password reset flow (rotate env vars instead) and no built-in rate-limiting (see Phase 4 TODO if you ever expose the URL publicly).
+- **Two different `STUDIO_SESSION_SECRET` values** — local vs production. Compromising one doesn't compromise the other. Both are 32 random bytes (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
 - **Single migration so far.** Don't edit `0001_init.sql` after it's been applied to a real DB; add `0002_*.sql` for any future change.
 - **Body stored as HTML.** Simpler than ProseMirror JSON. TipTap can emit and consume HTML natively.
 - **No user accounts.** The site is single-author. Auth is for the Studio only. Public readers have zero account flow.
 - **No comments / reactions yet.** Reader-first means quiet. Add only if explicitly requested.
 - **No analytics in the bundle.** When you want stats, prefer Vercel Analytics or Plausible — they don't add tracking pixels.
 - **Highcrest is "personal use."** Audit if the site is ever monetized.
+- **Vercel deploy = push to `main`.** The CLI deploy (`vercel --prod`) is a manual override; the default loop is `git push`. Env vars are *not* committed — they live only in `.env.local` (gitignored) and Vercel project settings.
 
 ---
 

@@ -2,23 +2,24 @@
 
 Organized so you can pick up any phase in a fresh session and know exactly what to do. Items are checkboxes — tick as you finish. Each phase is independent enough to ship on its own.
 
-Last updated: 2026-05-27. Phase 1 partially landed: editor, Poetry node, auto-save, and the works CRUD are live. Series CMS + image uploads still open.
+Last updated: 2026-05-27. Phase 0 complete: studio auth swapped from Supabase magic-link to env-backed username + password with an HMAC-signed cookie. GitHub repo live at `jlnzccy/marahuyo`; Vercel project linked + production env vars set + deployed. Phase 1 partially landed: editor, Poetry node, auto-save, works CRUD are live. Series CMS + image uploads still open.
 
 ---
 
-## Phase 0 — Make the local app real (do first, ~30 min)
+## Phase 0 — Make the local app real (mostly done)
 
-You have keys now. Wire them through.
-
-- [x] `.env.local` filled (URL, publishable, secret, owner email).
-- [ ] Apply the schema to your Supabase project.
-  - **Option A (easiest):** Open Supabase Dashboard → SQL Editor → New query → paste the contents of `supabase/migrations/0001_init.sql` → Run.
+- [x] `.env.local` filled (URL, publishable, secret).
+- [x] **Auth replaced.** `STUDIO_OWNER_EMAIL` + magic-link removed. New env vars: `STUDIO_USERNAME=jasthtcs`, `STUDIO_PASSWORD=chanjae13`, `STUDIO_SESSION_SECRET=<32-byte hex>`.
+- [x] **GitHub.** Repo: https://github.com/jlnzccy/marahuyo. SSH key `~/.ssh/id_ed25519_jlnzccy` bound via `~/.ssh/config`. Git identity = `jlnzccy` / `j.lnzccy@gmail.com`.
+- [x] **Vercel.** Project `marahuyo` (org `jae-s-projects`) linked to repo. Production env vars set (`STUDIO_USERNAME`, `STUDIO_PASSWORD`, `STUDIO_SESSION_SECRET` — production secret is *different* from local). Aliased to `marahuyoph.vercel.app`. Auto-deploys on push to `main`.
+- [ ] **Apply the schema to your Supabase project.**
+  - **Option A:** Supabase Dashboard → SQL Editor → New query → paste `supabase/migrations/0001_init.sql` → Run.
   - **Option B (CLI):** `npm i -g supabase` → `supabase login` → `supabase link --project-ref jlssmixxfdiytdopwwvp` → `supabase db push`.
-- [ ] In Supabase Dashboard → Authentication → Providers → enable **Email** (magic link is on by default).
-- [ ] In Supabase Dashboard → Authentication → URL Configuration → add `http://localhost:3000` and your future production URL to the redirect allow-list.
-- [ ] Run `npm run dev` and visit `/studio/login`. Send yourself a magic link to `jlnzccy@gmail.com`. Confirm you land on `/studio` after clicking.
-- [ ] Try signing in with a non-owner email. Confirm you get redirected to `/` (not `/studio`).
-- [ ] Rotate the keys you pasted into the chat. Dashboard → Settings → API → Reset publishable + secret. Update `.env.local`.
+- [ ] **Smoke-test login.** Visit `marahuyoph.vercel.app/studio/login`, sign in with `jasthtcs` / `chanjae13`, confirm `/studio` loads.
+- [ ] **Delete the legacy Supabase auth user.** Dashboard → Authentication → Users → remove any existing entry (or leave — it's harmless, the app no longer queries `auth.users`).
+- [ ] **Clean up dead middleware.** `middleware.ts` still refreshes a Supabase auth cookie that nothing reads. Either delete the file (safe — `/studio/*` is now guarded only by `(protected)/layout.tsx`) or keep it as a no-op. Recommend delete.
+- [ ] **Add Vercel env vars to Preview + Development.** Current CLI prompt blocked; add via dashboard if you start using PR previews. Same three values; production secret stays unique.
+- [ ] **Rotate any keys ever pasted in chat.** Supabase Dashboard → Settings → API → Reset publishable + secret. Update `.env.local` and the matching Vercel env vars.
 
 ---
 
@@ -73,7 +74,7 @@ All actions are in `src/app/studio/(protected)/_actions/works.ts`. Each re-check
 - [ ] `/studio/series/[id]` — series settings + chapter table with the dnd-kit sortable list.
 - [ ] `/studio/series/[id]/chapters/[chapterId]` — chapter editor (reuse the work-editor-form shape).
 - [ ] `/studio/drafts` — single inbox of every `status='draft'` row across works + chapters.
-- [ ] `/studio/settings` — owner email, default theme, social links. Probably needs a new `settings` row in Supabase.
+- [ ] `/studio/settings` — default theme, social links. Probably needs a new `settings` row in Supabase. (No more "owner email" — auth is env-backed.)
 - [ ] Replace the native `window.confirm` delete-flow with an inline modal (`<dialog>` element or a small Framer Motion sheet).
 
 ### 1.6 — Image uploads
@@ -135,6 +136,8 @@ Things worth thinking about but **not** before Phase 1 / 2 are done.
 - [ ] Newsletter — Buttondown or Beehiiv. A `subscribe` form at the bottom of `/works`.
 - [ ] Web-Share API on every reader page (`navigator.share`) for native mobile share.
 - [ ] Print stylesheet — `@media print` block in `globals.css` so essays print as actual essays.
+- [ ] Optional later: add Supabase schema sync via GitHub Action (`supabase db push` on main) — free, ~30 min setup. Useful only once schema changes start happening frequently.
+- [ ] Optional later: brute-force protection on `/studio/login` — current implementation has no rate limit. Add a simple in-memory or Vercel KV counter if you ever expose this URL publicly.
 
 ---
 
@@ -143,6 +146,7 @@ Things worth thinking about but **not** before Phase 1 / 2 are done.
 - Buy a Highcrest commercial license (or replace with a free alternative like *Cormorant Garamond* or *Tenor Sans* if you go commercial).
 - Decide what `Marahuyo` becomes on social — Instagram handle, possible Substack mirror, mailing list.
 - Take an actual portrait photo with the yellow background, like the Google Sites version. Replace the Picsum placeholder.
+- Rotate `STUDIO_SESSION_SECRET` (local + Vercel) anytime you want to invalidate all active studio sessions.
 
 ---
 
