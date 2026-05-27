@@ -10,21 +10,25 @@ type Props = {
 };
 
 const LS_PREFIX = "marahuyo:like:";
+const BURST_MS = 900;
 
 /**
- * Local-only heart. Persists across reloads via localStorage but is not
- * shared across devices. No DB write. Visual: outlined heart when un-liked,
- * filled (accent) heart with subtle bloom when liked.
+ * Local-only heart with a mojs-style burst on activation.
+ * - Idle: outlined heart, whisper tone.
+ * - Click → liked: red particle burst, scale-curve, color settles to ink black.
+ * - Click → unliked: instant fade back to outlined whisper (no burst).
+ * State persists in localStorage but is not shared across devices.
  */
 export function LikeButton({ keyId }: Props) {
   const [mounted, setMounted] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [bursting, setBursting] = useState(false);
 
   useEffect(() => {
     try {
       setLiked(localStorage.getItem(LS_PREFIX + keyId) === "1");
     } catch {
-      /* private mode, etc. — leave as false */
+      /* private mode, etc. */
     }
     setMounted(true);
   }, [keyId]);
@@ -38,38 +42,63 @@ export function LikeButton({ keyId }: Props) {
     } catch {
       /* swallow */
     }
+    if (next) {
+      setBursting(true);
+      window.setTimeout(() => setBursting(false), BURST_MS);
+    }
   };
 
   /* Server / pre-hydrate render uses the outlined state so SSR & CSR agree. */
   const showLiked = mounted && liked;
 
+  /* 10 burst particles arranged radially. Alternating tints for depth. */
+  const particles = Array.from({ length: 10 }, (_, i) => i);
+
   return (
-    <div className="mt-10 flex flex-col items-center gap-2">
+    <div className="mt-10 flex justify-start">
       <button
         type="button"
         onClick={toggle}
         aria-pressed={showLiked}
         aria-label={showLiked ? "Remove from liked" : "Like this piece"}
         className={cn(
-          "group inline-flex h-12 w-12 items-center justify-center rounded-full border transition-all",
-          showLiked
-            ? "border-accent/50 bg-accent/10 text-accent"
-            : "border-border/60 bg-surface/40 text-muted hover:border-accent/40 hover:bg-accent/5 hover:text-accent"
+          "relative inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors",
+          showLiked ? "text-ink" : "text-whisper hover:text-ink"
         )}
       >
+        {/* Particle ring — only mounted during burst */}
+        {bursting && (
+          <span aria-hidden className="pointer-events-none absolute inset-0">
+            {particles.map((i) => {
+              const angle = (i / particles.length) * 360;
+              const radius = 28 + (i % 2) * 6;
+              const color = i % 2 === 0 ? "rgb(239,68,68)" : "rgb(252,165,165)";
+              return (
+                <span
+                  key={i}
+                  className="heart-particle"
+                  style={
+                    {
+                      background: color,
+                      ["--a" as string]: `${angle}deg`,
+                      ["--r" as string]: `${radius}px`
+                    } as React.CSSProperties
+                  }
+                />
+              );
+            })}
+          </span>
+        )}
+
         <Heart
           className={cn(
-            "h-5 w-5 transition-transform duration-300",
-            showLiked && "scale-110",
-            "group-active:scale-90"
+            "h-5 w-5 transition-all duration-300",
+            bursting && "heart-burst-icon"
           )}
           fill={showLiked ? "currentColor" : "none"}
           strokeWidth={1.5}
         />
       </button>
-      <span className="meta">
-        {showLiked ? "you loved this" : "leave a heart"}
-      </span>
     </div>
   );
 }

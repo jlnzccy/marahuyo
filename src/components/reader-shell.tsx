@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { ReaderContainer } from "@/components/reader-container";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -49,10 +51,28 @@ export function ReaderShell({
       <SiteHeader scrollAware />
       <main className="pt-12 pb-24 md:pt-20">
         <ReaderContainer>
+          {index && (
+            <FadeUp delay={0.02}>
+              <Link
+                href={index.href}
+                className="group mb-6 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-meta text-muted transition-colors hover:text-ink"
+              >
+                <ArrowLeft className="h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
+                {index.label}
+              </Link>
+            </FadeUp>
+          )}
+
           <FadeUp delay={0.05}>
-            <div className="mb-8 flex flex-wrap items-center gap-3">
+            <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <KindChip kind={kind} />
               {eyebrow && <span className="meta">{eyebrow}</span>}
+              {meta && (
+                <>
+                  <span aria-hidden className="meta text-whisper">·</span>
+                  <span className="meta">{meta}</span>
+                </>
+              )}
             </div>
           </FadeUp>
 
@@ -67,12 +87,6 @@ export function ReaderShell({
               <p className="mt-6 font-serif italic text-sm text-muted/80 text-pretty border-l-2 border-muted/20 pl-4 max-w-prose">
                 {subtitle}
               </p>
-            </FadeUp>
-          )}
-
-          {meta && (
-            <FadeUp delay={0.24}>
-              <p className="meta mt-6">{meta}</p>
             </FadeUp>
           )}
 
@@ -106,9 +120,11 @@ export function ReaderShell({
             </FadeUp>
           )}
 
-          <FadeUp delay={0.1}>
-            <ReaderFoot prev={prev ?? null} next={next ?? null} index={index ?? null} />
-          </FadeUp>
+          {(prev || next) && (
+            <FadeUp delay={0.1}>
+              <ReaderFoot prev={prev ?? null} next={next ?? null} index={null} />
+            </FadeUp>
+          )}
         </ReaderContainer>
       </main>
       <SiteFooter />

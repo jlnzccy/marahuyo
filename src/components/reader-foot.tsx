@@ -14,9 +14,14 @@ type Props = {
 };
 
 export function ReaderFoot({ prev, next, index }: Props) {
+  const showIndex = !!index;
   return (
     <nav aria-label="Chapter navigation" className="mt-16 border-t border-border/60 pt-10">
-      <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
+      <div
+        className={
+          showIndex ? "grid grid-cols-2 gap-6 md:grid-cols-3" : "grid grid-cols-2 gap-6"
+        }
+      >
         <div>
           {prev && (
             <Link
@@ -34,7 +39,7 @@ export function ReaderFoot({ prev, next, index }: Props) {
           )}
         </div>
 
-        {index && (
+        {showIndex && index && (
           <div className="hidden md:block">
             <Link
               href={index.href}

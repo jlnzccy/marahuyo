@@ -265,3 +265,44 @@
 html[data-theme-init] body {
   visibility: visible;
 }
+
+/* =========================================================
+   Like-heart burst animation (mojs-inspired, pure CSS)
+   ========================================================= */
+
+@keyframes heart-burst-scale {
+  0%   { transform: scale(0.6); }
+  20%  { transform: scale(1.4); }
+  45%  { transform: scale(0.92); }
+  70%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes heart-burst-color {
+  0%   { color: rgb(239 68 68); }   /* red-500 */
+  60%  { color: rgb(220 38 38); }   /* red-600 */
+  100% { color: rgb(var(--ink)); }
+}
+
+@keyframes heart-particle {
+  0%   { transform: translate(-50%, -50%) rotate(var(--a)) translateX(0) scale(1);   opacity: 1; }
+  60%  {                                                                              opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--a)) translateX(var(--r)) scale(0); opacity: 0; }
+}
+
+.heart-burst-icon {
+  animation: heart-burst-scale 700ms cubic-bezier(0.22, 1, 0.36, 1) both,
+             heart-burst-color 900ms ease-out both;
+}
+
+.heart-particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%) rotate(var(--a)) translateX(0) scale(1);
+  animation: heart-particle 700ms cubic-bezier(0.18, 0.72, 0.32, 1) both;
+  animation-delay: 40ms;
+}
