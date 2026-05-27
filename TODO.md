@@ -2,7 +2,7 @@
 
 Organized so you can pick up any phase in a fresh session and know exactly what to do. Items are checkboxes — tick as you finish. Each phase is independent enough to ship on its own.
 
-Last updated: 2026-05-27. Phase 0 complete. Phase 1 complete: editor + Poetry node (round-trip verified) + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum, Highcrest 'm' favicon, gradient SVG fallbacks for mock covers. Remaining Phase 3: real cover/portrait photos (manual upload via Studio). Phase 1.7 complete: universal embed picker (YouTube/Instagram/Vimeo/Spotify/TikTok), inline dialogs (PromptDialog + AlertDialog replacing all window.prompt/alert), studio overview refresh (live stats + recent activity). Favicon SVG MIME type fixed.
+Last updated: 2026-05-27. Phase 0 complete. Phase 1 complete: editor + Poetry node (round-trip verified) + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum, Highcrest 'm' favicon, gradient SVG fallbacks for mock covers. Remaining Phase 3: real cover/portrait photos (manual upload via Studio). Phase 1.7 complete: universal embed picker (YouTube/Instagram/Vimeo/Spotify/TikTok), inline dialogs (PromptDialog + AlertDialog replacing all window.prompt/alert), studio overview refresh (live stats + recent activity). Favicon SVG MIME type fixed. Phase 3.6 complete: bubble menu z-30, in-editor image upload (Supabase storage via `editor/<id>` prefix), footer tagline removed, themed DatePicker, localStorage LikeButton on reader pages, homepage epigraph links to source work.
 
 ---
 
@@ -137,14 +137,22 @@ Quiet additions that make the site feel finished.
 
 ---
 
+## Phase 3.6 — Bugs & Follow-ups
+
+- [x] **Bubble menu z-index.** Added `z-30` to the floating menu className so it sits above the sticky toolbar (`z-20`).
+- [x] **In-editor image upload.** Toolbar `Image` button now opens an `ImageUploadDialog` (drag-drop + file picker, "or paste URL" fallback) that uploads via the existing `uploadStudioImage` action under `covers/editor/<workId-or-chapterId>/`. Both editors pass `uploadPrefix={\`editor/\${initial.id}\`}` to `<Editor>`.
+- [x] **Remove footer tagline.** Stripped "— all stories belong to their author" from `src/components/site-footer.tsx`.
+- [x] **Custom date picker.** New `DatePicker` component (calendar popover, month nav, today + clear, future-dates disabled via `max`). Wired into work + chapter editor sidebars in place of native `<input type="date">`. Other native pickers (`<select>` for kind etc.) already replaced earlier — no other `type="date"` left.
+- [x] **Like button on reader.** Chose **anonymous, localStorage-only** path. New `LikeButton` reads/writes `marahuyo:like:<keyId>`, renders between body + reader-foot. Keys: `read/<slug>` for standalones, `series/<slug>/<chapter>` for chapters.
+- [x] **Homepage epigraph link.** `getRandomEpigraph()` now returns `slug` too; the homepage closing quote wraps the title in `<Link href={\`/read/\${slug}\`}>`.
+
+---
+
 ## Phase 4 — Future ideas (capture, don't commit)
 
 Things worth thinking about but **not** before Phase 1 / 2 are done.
 
-- [ ] Bilingual toggle (English ↔ Tagalog) — each work can have an optional `body_tl` column.
 - [ ] Reader bookmarks — `localStorage` keyed by slug; show a "continue reading" rail on Homepage. No server state needed.
-- [ ] Audio narration — host MP3s in Supabase Storage; render a `<audio>` player above the prose.
-- [ ] Newsletter — Buttondown or Beehiiv. A `subscribe` form at the bottom of `/works`.
 - [ ] Web-Share API on every reader page (`navigator.share`) for native mobile share.
 - [ ] Print stylesheet — `@media print` block in `globals.css` so essays print as actual essays.
 - [ ] Optional later: add Supabase schema sync via GitHub Action (`supabase db push` on main) — free, ~30 min setup. Useful only once schema changes start happening frequently.

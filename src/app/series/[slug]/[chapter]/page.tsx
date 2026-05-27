@@ -72,6 +72,7 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
         label: "Series index",
         hint: series.title
       }}
+      likeKey={`series/${series.slug}/${c.slug}`}
     />
   );
 }

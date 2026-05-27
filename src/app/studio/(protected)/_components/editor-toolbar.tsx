@@ -21,9 +21,12 @@ import {
 import { cn } from "@/lib/cn";
 import { PromptDialog } from "./prompt-dialog";
 import { EmbedPicker } from "./embed-picker";
+import { ImageUploadDialog } from "./image-upload-dialog";
 
 type Props = {
   editor: Editor;
+  /** When set, image button opens a file uploader scoped to this prefix. */
+  uploadPrefix?: string;
 };
 
 type ButtonProps = {
@@ -69,7 +72,7 @@ type PromptState =
   | { kind: "link"; defaultValue: string }
   | { kind: "image" };
 
-export function EditorToolbar({ editor }: Props) {
+export function EditorToolbar({ editor, uploadPrefix }: Props) {
   /* -- prompt dialog ------------------------------------------------ */
   const [prompt, setPrompt] = useState<PromptState>({ kind: "closed" });
 
@@ -104,6 +107,14 @@ export function EditorToolbar({ editor }: Props) {
     setPrompt({ kind: "closed" });
     editor.chain().focus().run();
   }, [editor]);
+
+  const insertImageUrl = useCallback(
+    (url: string) => {
+      if (url) editor.chain().focus().setImage({ src: url }).run();
+      setPrompt({ kind: "closed" });
+    },
+    [editor]
+  );
 
   /* -- embed picker ------------------------------------------------- */
   const [embedOpen, setEmbedOpen] = useState(false);
@@ -222,14 +233,25 @@ export function EditorToolbar({ editor }: Props) {
         onConfirm={handlePromptConfirm}
         onCancel={handlePromptCancel}
       />
-      <PromptDialog
-        open={prompt.kind === "image"}
-        title="Image URL"
-        placeholder="https://…"
-        confirmLabel="Insert image"
-        onConfirm={handlePromptConfirm}
-        onCancel={handlePromptCancel}
-      />
+
+      {/* Image: upload dialog when scope is known, URL prompt as fallback. */}
+      {uploadPrefix ? (
+        <ImageUploadDialog
+          open={prompt.kind === "image"}
+          prefix={uploadPrefix}
+          onConfirm={insertImageUrl}
+          onCancel={handlePromptCancel}
+        />
+      ) : (
+        <PromptDialog
+          open={prompt.kind === "image"}
+          title="Image URL"
+          placeholder="https://…"
+          confirmLabel="Insert image"
+          onConfirm={handlePromptConfirm}
+          onCancel={handlePromptCancel}
+        />
+      )}
     </div>
   );
 }

@@ -25,11 +25,17 @@ type Props = {
   /** Fired on every keystroke after a small debounce in the consumer. */
   onChange: (payload: EditorPayload) => void;
   placeholder?: string;
+  /**
+   * Storage prefix under the `covers` bucket for inline image uploads.
+   * When set, the toolbar's image button opens a file picker that uploads
+   * to `covers/<uploadPrefix>/`. When omitted, falls back to URL-only.
+   */
+  uploadPrefix?: string;
 };
 
 const WORDS_PER_MINUTE = 200;
 
-export function Editor({ initialContent, onChange, placeholder }: Props) {
+export function Editor({ initialContent, onChange, placeholder, uploadPrefix }: Props) {
   // Hold the latest onChange in a ref so we can register it once with TipTap
   // without re-instantiating the editor on every parent render.
   const onChangeRef = useRef(onChange);
@@ -81,7 +87,7 @@ export function Editor({ initialContent, onChange, placeholder }: Props) {
 
   return (
     <div className="space-y-4">
-      <EditorToolbar editor={editor} />
+      <EditorToolbar editor={editor} uploadPrefix={uploadPrefix} />
       <EditorBubbleMenu editor={editor} />
       <div className="mx-auto max-w-reader">
         <EditorContent editor={editor} />

@@ -50,6 +50,7 @@ export default async function ReadPage({ params }: { params: Promise<Params> }) 
       prev={null}
       next={null}
       index={{ href: "/works", label: "All works", hint: "Return to the archive" }}
+      likeKey={`read/${work.slug}`}
     />
   );
 }

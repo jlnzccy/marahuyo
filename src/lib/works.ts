@@ -225,18 +225,22 @@ export async function getPublishedChapterUpdates(): Promise<
   return out;
 }
 
-export async function getRandomEpigraph(): Promise<{ text: string; title: string } | null> {
+export async function getRandomEpigraph(): Promise<
+  { text: string; title: string; slug: string } | null
+> {
   const sb = getPublicSupabase();
   const { data, error } = await sb
     .from("works")
-    .select("title, subtitle")
+    .select("title, subtitle, slug")
     .eq("status", "published")
     .neq("kind", "series");
   if (error || !data) return null;
-  const rows = (data as Pick<WorkRow, "title" | "subtitle">[]).filter((r) => r.subtitle);
+  const rows = (data as Pick<WorkRow, "title" | "subtitle" | "slug">[]).filter(
+    (r) => r.subtitle
+  );
   if (rows.length === 0) return null;
   const pick = rows[Math.floor(Math.random() * rows.length)];
-  return { text: pick.subtitle!, title: pick.title };
+  return { text: pick.subtitle!, title: pick.title, slug: pick.slug };
 }
 
 export async function getPublishedChapterParams(): Promise<

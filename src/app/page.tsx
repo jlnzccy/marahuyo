@@ -170,7 +170,15 @@ export default async function HomePage() {
                 <p className="font-italic italic text-2xl leading-snug text-ink text-pretty md:text-3xl">
                   &ldquo;{epigraph.text}&rdquo;
                 </p>
-                <p className="meta mt-6">from &ldquo;{epigraph.title}&rdquo;</p>
+                <p className="meta mt-6">
+                  from{" "}
+                  <Link
+                    href={`/read/${epigraph.slug}`}
+                    className="underline decoration-muted/30 underline-offset-[4px] transition-colors hover:text-ink hover:decoration-ink"
+                  >
+                    &ldquo;{epigraph.title}&rdquo;
+                  </Link>
+                </p>
               </div>
             </ReaderContainer>
           </section>

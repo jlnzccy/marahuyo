@@ -6,6 +6,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { ReadingProgress } from "@/components/reading-progress";
 import { ReaderFoot } from "@/components/reader-foot";
 import { KindChip } from "@/components/kind-chip";
+import { LikeButton } from "@/components/like-button";
 import { FadeUp } from "@/components/motion";
 import { cn } from "@/lib/cn";
 import type { WorkKind } from "@/types/content";
@@ -24,6 +25,8 @@ type Props = {
   prev?: FootLink | null;
   next?: FootLink | null;
   index?: FootLink | null;
+  /** Stable id for the localStorage like-toggle. Omit to hide the heart. */
+  likeKey?: string;
 };
 
 export function ReaderShell({
@@ -37,7 +40,8 @@ export function ReaderShell({
   coverImage,
   prev,
   next,
-  index
+  index,
+  likeKey
 }: Props) {
   return (
     <>
@@ -95,6 +99,12 @@ export function ReaderShell({
               dangerouslySetInnerHTML={{ __html: body }}
             />
           </FadeUp>
+
+          {likeKey && (
+            <FadeUp delay={0.08}>
+              <LikeButton keyId={likeKey} />
+            </FadeUp>
+          )}
 
           <FadeUp delay={0.1}>
             <ReaderFoot prev={prev ?? null} next={next ?? null} index={index ?? null} />

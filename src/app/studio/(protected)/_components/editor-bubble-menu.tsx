@@ -79,7 +79,7 @@ export function EditorBubbleMenu({ editor }: Props) {
           if (editor.isActive("poetry")) return false;
           return editor.isEditable;
         }}
-        className="flex items-center gap-0.5 rounded-md border border-ink/20 bg-ink/95 p-1 shadow-lg backdrop-blur"
+        className="z-30 flex items-center gap-0.5 rounded-md border border-ink/20 bg-ink/95 p-1 shadow-lg backdrop-blur"
       >
         <BubbleButton
           label="Bold"

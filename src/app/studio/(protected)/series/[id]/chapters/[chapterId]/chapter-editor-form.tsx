@@ -11,6 +11,7 @@ import {
 } from "@/app/studio/(protected)/_actions/works";
 import { Editor, type EditorPayload } from "@/app/studio/(protected)/_components/editor";
 import { ConfirmDialog } from "@/app/studio/(protected)/_components/confirm-dialog";
+import { DatePicker } from "@/app/studio/(protected)/_components/date-picker";
 import {
   SaveIndicator,
   type SaveStatus
@@ -255,7 +256,11 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
 
           <div className="hairline" aria-hidden />
 
-          <Editor initialContent={initial.body} onChange={handleEditorChange} />
+          <Editor
+            initialContent={initial.body}
+            onChange={handleEditorChange}
+            uploadPrefix={`editor/${initial.id}`}
+          />
         </div>
 
         <aside className="space-y-6">
@@ -288,24 +293,15 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
           </section>
 
           <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-4">
-            <label className="block">
-              <span className="meta">publication date</span>
-              <input
-                type="date"
-                value={customDate}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val && val > new Date().toISOString().slice(0, 10)) {
-                    setDateError("Date cannot be in the future.");
-                    return;
-                  }
-                  setDateError(undefined);
-                  setCustomDate(val);
-                }}
-                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-1.5 font-mono text-xs text-ink focus:border-accent focus:outline-none"
-              />
-            </label>
+            <span className="meta">publication date</span>
+            <DatePicker
+              value={customDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(val) => {
+                setDateError(undefined);
+                setCustomDate(val);
+              }}
+            />
             {dateError && (
               <p className="font-sans text-xs text-red-600">{dateError}</p>
             )}
