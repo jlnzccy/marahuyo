@@ -109,6 +109,10 @@ Quiet additions that make the site feel finished.
 - [ ] Add an Instagram link parser — embed an Instagram post into prose (`<iframe src="…/embed"/>` block in the editor).
 - [ ] Favicon: regenerate `public/favicon.svg` with a Highcrest "m" rendered to inline `<path>` so the favicon matches the wordmark exactly (use the Highcrest font in Figma → export the "m" as SVG path).
 - [ ] Add 404 illustrations for `/studio` separately from the public not-found.
+- [ ] **More flexible "kind of work" picker.** Currently `/studio/works/new` forces a choice between poem / essay / one-shot — feels restrictive when you want to write an article, a blog post, a short story, a note, etc. Two paths:
+  - **Light:** extend the `work_kind` enum with `article`, `story`, `note` (migration `0003_extend_work_kind.sql`), add picker cards + `KindChip` labels for each. Keeps a clean discriminator for rendering rules (e.g., poetry mode auto-on for `poem`).
+  - **Heavy:** drop the picker entirely on creation — every new draft starts as a generic "piece", and the kind/genre is just a free-text label or tag chosen later in the editor. Simpler UX, but loses the per-kind layout hooks.
+  - Decide once you have ~10 published works and the actual buckets are obvious.
 
 ---
 
