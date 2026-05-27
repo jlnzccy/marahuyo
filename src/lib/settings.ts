@@ -18,7 +18,7 @@ export type SiteSettings = {
   defaultTheme: string;
   instagramUrl: string | null;
   twitterUrl: string | null;
-  substackUrl: string | null;
+  mediumUrl: string | null;
   githubUrl: string | null;
   contactEmail: string | null;
   author: {
@@ -53,7 +53,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     defaultTheme: row?.default_theme ?? "light",
     instagramUrl: row?.instagram_url ?? null,
     twitterUrl: row?.twitter_url ?? null,
-    substackUrl: row?.substack_url ?? null,
+    mediumUrl: row?.medium_url ?? null,
     githubUrl: row?.github_url ?? null,
     contactEmail: row?.contact_email ?? null,
     author: {

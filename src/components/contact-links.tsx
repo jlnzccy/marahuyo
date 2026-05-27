@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Mail, Instagram, BookMarked, type LucideIcon } from "lucide-react";
+import { Mail, Instagram, Newspaper, Twitter, Github, type LucideIcon } from "lucide-react";
 import { Stagger, staggerChild } from "@/components/motion";
 
 export type ContactLink = {
-  icon: "mail" | "instagram" | "substack";
+  icon: "mail" | "instagram" | "medium" | "twitter" | "github";
   label: string;
   value: string;
   href: string;
@@ -16,7 +16,9 @@ export type ContactLink = {
 const ICONS: Record<ContactLink["icon"], LucideIcon> = {
   mail: Mail,
   instagram: Instagram,
-  substack: BookMarked
+  medium: Newspaper,
+  twitter: Twitter,
+  github: Github
 };
 
 export function ContactLinks({ links }: { links: ContactLink[] }) {

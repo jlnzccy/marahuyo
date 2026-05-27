@@ -12,7 +12,7 @@ export type InitialSettings = {
   defaultTheme: string;
   instagramUrl: string;
   twitterUrl: string;
-  substackUrl: string;
+  mediumUrl: string;
   githubUrl: string;
   contactEmail: string;
   portraitUrl: string;
@@ -36,7 +36,7 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
   const [defaultTheme, setDefaultTheme] = useState(initial.defaultTheme);
   const [instagramUrl, setInstagramUrl] = useState(initial.instagramUrl);
   const [twitterUrl, setTwitterUrl] = useState(initial.twitterUrl);
-  const [substackUrl, setSubstackUrl] = useState(initial.substackUrl);
+  const [mediumUrl, setMediumUrl] = useState(initial.mediumUrl);
   const [githubUrl, setGithubUrl] = useState(initial.githubUrl);
   const [contactEmail, setContactEmail] = useState(initial.contactEmail);
   const [portraitUrl, setPortraitUrl] = useState(initial.portraitUrl);
@@ -67,7 +67,7 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
         defaultTheme,
         instagramUrl: instagramUrl || null,
         twitterUrl: twitterUrl || null,
-        substackUrl: substackUrl || null,
+        mediumUrl: mediumUrl || null,
         githubUrl: githubUrl || null,
         contactEmail: contactEmail || null,
         portraitUrl: portraitUrl || null,
@@ -93,7 +93,7 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
     defaultTheme,
     instagramUrl,
     twitterUrl,
-    substackUrl,
+    mediumUrl,
     githubUrl,
     contactEmail,
     portraitUrl,
@@ -315,11 +315,11 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
             placeholder="https://x.com/…"
           />
           <Field
-            label="substack"
-            value={substackUrl}
-            onChange={setSubstackUrl}
+            label="medium"
+            value={mediumUrl}
+            onChange={setMediumUrl}
             type="url"
-            placeholder="https://…substack.com"
+            placeholder="https://medium.com/@…"
           />
           <Field
             label="github"

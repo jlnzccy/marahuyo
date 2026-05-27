@@ -130,7 +130,7 @@ export interface SettingsRow {
   default_theme: string;
   instagram_url: string | null;
   twitter_url: string | null;
-  substack_url: string | null;
+  medium_url: string | null;
   github_url: string | null;
   contact_email: string | null;
   portrait_url: string | null;
@@ -152,7 +152,7 @@ export interface SettingsUpdate {
   default_theme?: string;
   instagram_url?: string | null;
   twitter_url?: string | null;
-  substack_url?: string | null;
+  medium_url?: string | null;
   github_url?: string | null;
   contact_email?: string | null;
   portrait_url?: string | null;

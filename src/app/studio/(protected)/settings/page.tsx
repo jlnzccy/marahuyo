@@ -9,7 +9,7 @@ const DEFAULTS: InitialSettings = {
   defaultTheme: "light",
   instagramUrl: "",
   twitterUrl: "",
-  substackUrl: "",
+  mediumUrl: "",
   githubUrl: "",
   contactEmail: "",
   portraitUrl: "",
@@ -43,7 +43,8 @@ export default async function StudioSettingsPage() {
         </p>
         <p className="mt-2 font-sans text-xs text-red-700/80">
           Did you apply <code>supabase/migrations/0003_settings.sql</code>,{" "}
-          <code>0005_settings_about.sql</code>, and <code>0006_about_place_settings.sql</code>?
+          <code>0005_settings_about.sql</code>, <code>0006_about_place_settings.sql</code>,
+          and <code>0007_settings_medium.sql</code>?
         </p>
       </div>
     );
@@ -54,7 +55,7 @@ export default async function StudioSettingsPage() {
         defaultTheme: data.default_theme ?? "light",
         instagramUrl: data.instagram_url ?? "",
         twitterUrl: data.twitter_url ?? "",
-        substackUrl: data.substack_url ?? "",
+        mediumUrl: data.medium_url ?? "",
         githubUrl: data.github_url ?? "",
         contactEmail: data.contact_email ?? "",
         portraitUrl: data.portrait_url ?? "",
