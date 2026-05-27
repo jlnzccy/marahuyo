@@ -24,6 +24,9 @@ export type InitialSettings = {
   authorBio: string;
   authorBioLong: string;
   authorLocation: string;
+  aboutPlaceTitle: string;
+  aboutPlaceBody: string;
+  aboutPlaceQuote: string;
 };
 
 const SAVE_DEBOUNCE_MS = 1200;
@@ -45,6 +48,9 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
   const [authorBio, setAuthorBio] = useState(initial.authorBio);
   const [authorBioLong, setAuthorBioLong] = useState(initial.authorBioLong);
   const [authorLocation, setAuthorLocation] = useState(initial.authorLocation);
+  const [aboutPlaceTitle, setAboutPlaceTitle] = useState(initial.aboutPlaceTitle);
+  const [aboutPlaceBody, setAboutPlaceBody] = useState(initial.aboutPlaceBody);
+  const [aboutPlaceQuote, setAboutPlaceQuote] = useState(initial.aboutPlaceQuote);
 
   const [saveState, setSaveState] = useState<SaveStatus>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
@@ -72,7 +78,10 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
         authorShortBio: authorShortBio || null,
         authorBio: authorBio || null,
         authorBioLong: authorBioLong || null,
-        authorLocation: authorLocation || null
+        authorLocation: authorLocation || null,
+        aboutPlaceTitle: aboutPlaceTitle || null,
+        aboutPlaceBody: aboutPlaceBody || null,
+        aboutPlaceQuote: aboutPlaceQuote || null
       });
       setLastSavedAt(Date.now());
       setSaveState("saved");
@@ -95,7 +104,10 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
     authorShortBio,
     authorBio,
     authorBioLong,
-    authorLocation
+    authorLocation,
+    aboutPlaceTitle,
+    aboutPlaceBody,
+    aboutPlaceQuote
   ]);
 
   useEffect(() => {
@@ -246,6 +258,42 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
             </label>
           </div>
         </div>
+      </section>
+
+      {/* ---------- About this place ---------- */}
+      <section className="space-y-4 rounded-2xl border border-border/60 bg-surface/40 p-6">
+        <div>
+          <h2 className="font-serif text-xl font-bold">About this place</h2>
+          <p className="mt-1 font-italic italic text-sm text-muted">
+            shown at the bottom of the /about page. leave all fields empty to hide the section.
+          </p>
+        </div>
+        <Field
+          label="section title"
+          value={aboutPlaceTitle}
+          onChange={setAboutPlaceTitle}
+          placeholder="About this place"
+        />
+        <label className="block">
+          <span className="meta">body (HTML — supports {"<em>"}, {"<p>"}, etc.)</span>
+          <textarea
+            value={aboutPlaceBody}
+            onChange={(e) => setAboutPlaceBody(e.target.value)}
+            rows={5}
+            placeholder="This site is built as a reading canvas first…"
+            className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-2 font-mono text-xs text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
+          />
+        </label>
+        <label className="block">
+          <span className="meta">closing quote (shown as a blockquote)</span>
+          <input
+            type="text"
+            value={aboutPlaceQuote}
+            onChange={(e) => setAboutPlaceQuote(e.target.value)}
+            placeholder="If you are reading this, the work has already done what it set out to do."
+            className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-1.5 font-mono text-xs text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
+          />
+        </label>
       </section>
 
       {/* ---------- Links ---------- */}

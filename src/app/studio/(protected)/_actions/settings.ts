@@ -26,6 +26,9 @@ export type UpdateSettingsInput = {
   authorBio?: string | null;
   authorBioLong?: string | null;
   authorLocation?: string | null;
+  aboutPlaceTitle?: string | null;
+  aboutPlaceBody?: string | null;
+  aboutPlaceQuote?: string | null;
 };
 
 export async function updateSettings(input: UpdateSettingsInput) {
@@ -48,6 +51,9 @@ export async function updateSettings(input: UpdateSettingsInput) {
   if (input.authorBio !== undefined) patch.author_bio = input.authorBio;
   if (input.authorBioLong !== undefined) patch.author_bio_long = input.authorBioLong;
   if (input.authorLocation !== undefined) patch.author_location = input.authorLocation;
+  if (input.aboutPlaceTitle !== undefined) patch.about_place_title = input.aboutPlaceTitle;
+  if (input.aboutPlaceBody !== undefined) patch.about_place_body = input.aboutPlaceBody;
+  if (input.aboutPlaceQuote !== undefined) patch.about_place_quote = input.aboutPlaceQuote;
 
   const { error } = await supabase
     .from("settings")

@@ -41,6 +41,10 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
   const [title, setTitle] = useState(initial.title);
   const [subtitle, setSubtitle] = useState(initial.subtitle);
   const [poetryMode, setPoetryMode] = useState(initial.poetryMode);
+  const [customDate, setCustomDate] = useState<string>(
+    initial.publishedAt ? initial.publishedAt.slice(0, 10) : ""
+  );
+  const [dateError, setDateError] = useState<string | undefined>(undefined);
   const [body, setBody] = useState(initial.body);
   const [wordCount, setWordCount] = useState(initial.wordCount);
   const [readingMinutes, setReadingMinutes] = useState(initial.readingMinutes);
@@ -60,7 +64,8 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
     poetryMode: initial.poetryMode,
     body: initial.body,
     wordCount: initial.wordCount,
-    readingMinutes: initial.readingMinutes
+    readingMinutes: initial.readingMinutes,
+    customDate: initial.publishedAt ? initial.publishedAt.slice(0, 10) : ""
   });
 
   const flushSave = useCallback(async () => {
@@ -75,7 +80,8 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
         body: snap.body,
         poetryMode: snap.poetryMode,
         wordCount: snap.wordCount,
-        readingMinutes: snap.readingMinutes
+        readingMinutes: snap.readingMinutes,
+        publishedAt: snap.customDate ? new Date(snap.customDate).toISOString() : null
       });
       setLastSavedAt(Date.now());
       setSaveState("saved");
@@ -99,11 +105,12 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
       poetryMode,
       body,
       wordCount,
-      readingMinutes
+      readingMinutes,
+      customDate
     };
     if (didMount.current) scheduleSave();
     else didMount.current = true;
-  }, [title, subtitle, poetryMode, body, wordCount, readingMinutes, scheduleSave]);
+  }, [title, subtitle, poetryMode, body, wordCount, readingMinutes, customDate, scheduleSave]);
 
   useEffect(() => {
     return () => {
@@ -242,7 +249,7 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
             type="text"
             value={subtitle}
             onChange={(e) => setSubtitle(e.target.value)}
-            placeholder="optional subtitle — in which…"
+            placeholder="optional epigraph — in which…"
             className="w-full bg-transparent font-italic italic text-xl text-muted placeholder:text-whisper focus:outline-none md:text-2xl"
           />
 
@@ -280,11 +287,32 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
             </label>
           </section>
 
-          {initial.publishedAt && (
-            <p className="meta">
-              first published · {new Date(initial.publishedAt).toLocaleDateString()}
+          <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-4">
+            <label className="block">
+              <span className="meta">publication date</span>
+              <input
+                type="date"
+                value={customDate}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val && val > new Date().toISOString().slice(0, 10)) {
+                    setDateError("Date cannot be in the future.");
+                    return;
+                  }
+                  setDateError(undefined);
+                  setCustomDate(val);
+                }}
+                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-1.5 font-mono text-xs text-ink focus:border-accent focus:outline-none"
+              />
+            </label>
+            {dateError && (
+              <p className="font-sans text-xs text-red-600">{dateError}</p>
+            )}
+            <p className="font-sans text-xs text-whisper">
+              leave empty to auto-set when published
             </p>
-          )}
+          </section>
         </aside>
       </div>
 

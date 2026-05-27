@@ -32,13 +32,13 @@ export type SiteSettings = {
     location: string;
     portraitUrl: string;
   };
+  aboutPlace: {
+    title: string;
+    body: string;
+    quote: string;
+  };
 };
 
-/**
- * Load the singleton settings row, falling back to the static AUTHOR mock for
- * any field the writer hasn't filled in yet. Safe to call from any server
- * component — uses the anon key with RLS allowing public read on `settings`.
- */
 export async function getSiteSettings(): Promise<SiteSettings> {
   const sb = getPublicSupabase();
   const { data } = await sb
@@ -57,15 +57,20 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     githubUrl: row?.github_url ?? null,
     contactEmail: row?.contact_email ?? null,
     author: {
-      name: row?.author_name?.trim() || AUTHOR.name,
-      handle: row?.author_handle?.trim() || AUTHOR.handle,
-      tagline: row?.author_tagline?.trim() || AUTHOR.tagline,
-      subtitle: row?.author_subtitle?.trim() || AUTHOR.subtitle,
-      shortBio: row?.author_short_bio?.trim() || AUTHOR.shortBio,
-      bio: row?.author_bio?.trim() || AUTHOR.bio,
-      bioLong: row?.author_bio_long?.trim() || AUTHOR.bioLong,
-      location: row?.author_location?.trim() || AUTHOR.location,
+      name: row?.author_name?.trim() ?? "",
+      handle: row?.author_handle?.trim() ?? "",
+      tagline: row?.author_tagline?.trim() ?? "",
+      subtitle: row?.author_subtitle?.trim() ?? "",
+      shortBio: row?.author_short_bio?.trim() ?? "",
+      bio: row?.author_bio?.trim() ?? "",
+      bioLong: row?.author_bio_long?.trim() ?? "",
+      location: row?.author_location?.trim() ?? "",
       portraitUrl: row?.portrait_url?.trim() || AUTHOR.portraitUrl
+    },
+    aboutPlace: {
+      title: row?.about_place_title?.trim() ?? "",
+      body: row?.about_place_body?.trim() ?? "",
+      quote: row?.about_place_quote?.trim() ?? ""
     }
   };
 }

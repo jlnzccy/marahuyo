@@ -60,7 +60,7 @@ export function ReaderShell({
 
           {subtitle && (
             <FadeUp delay={0.18}>
-              <p className="mt-4 font-italic italic text-xl text-muted text-pretty md:text-2xl">
+              <p className="mt-6 font-serif italic text-sm text-muted/80 text-pretty border-l-2 border-muted/20 pl-4 max-w-prose">
                 {subtitle}
               </p>
             </FadeUp>

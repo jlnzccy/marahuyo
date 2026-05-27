@@ -49,6 +49,10 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
   const [body, setBody] = useState(initial.body);
   const [wordCount, setWordCount] = useState(initial.wordCount);
   const [readingMinutes, setReadingMinutes] = useState(initial.readingMinutes);
+  const [customDate, setCustomDate] = useState<string>(
+    initial.publishedAt ? initial.publishedAt.slice(0, 10) : ""
+  );
+  const [dateError, setDateError] = useState<string | undefined>(undefined);
 
   // ----- Status + control -----
   const [status, setStatus] = useState<WorkStatus>(initial.status);
@@ -70,7 +74,8 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
     poetryMode: initial.poetryMode,
     body: initial.body,
     wordCount: initial.wordCount,
-    readingMinutes: initial.readingMinutes
+    readingMinutes: initial.readingMinutes,
+    customDate: initial.publishedAt ? initial.publishedAt.slice(0, 10) : ""
   });
 
   const flushSave = useCallback(async () => {
@@ -88,7 +93,8 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
         coverImage: snap.coverImage || null,
         poetryMode: snap.poetryMode,
         wordCount: snap.wordCount,
-        readingMinutes: snap.readingMinutes
+        readingMinutes: snap.readingMinutes,
+        publishedAt: snap.customDate ? new Date(snap.customDate).toISOString() : null
       });
       setLastSavedAt(Date.now());
       setSaveState("saved");
@@ -120,7 +126,8 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
       poetryMode,
       body,
       wordCount,
-      readingMinutes
+      readingMinutes,
+      customDate
     };
     // Skip the very first render — there are no real changes yet.
     if (didMount.current) scheduleSave();
@@ -135,6 +142,7 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
     body,
     wordCount,
     readingMinutes,
+    customDate,
     scheduleSave
   ]);
 
@@ -281,7 +289,7 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
             type="text"
             value={subtitle}
             onChange={(e) => setSubtitle(e.target.value)}
-            placeholder="optional subtitle — a quieter second line"
+            placeholder="optional epigraph — a quiet line before the work"
             className="w-full bg-transparent font-italic italic text-xl text-muted placeholder:text-whisper focus:outline-none md:text-2xl"
           />
 
@@ -348,11 +356,32 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
             </label>
           </section>
 
-          {initial.publishedAt && (
-            <p className="meta">
-              first published · {new Date(initial.publishedAt).toLocaleDateString()}
+          <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-4">
+            <label className="block">
+              <span className="meta">publication date</span>
+              <input
+                type="date"
+                value={customDate}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val && val > new Date().toISOString().slice(0, 10)) {
+                    setDateError("Date cannot be in the future.");
+                    return;
+                  }
+                  setDateError(undefined);
+                  setCustomDate(val);
+                }}
+                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-1.5 font-mono text-xs text-ink focus:border-accent focus:outline-none"
+              />
+            </label>
+            {dateError && (
+              <p className="font-sans text-xs text-red-600">{dateError}</p>
+            )}
+            <p className="font-sans text-xs text-whisper">
+              leave empty to auto-set when published
             </p>
-          )}
+          </section>
         </aside>
       </div>
 

@@ -119,6 +119,7 @@ export type UpdateWorkInput = {
   poetryMode?: boolean;
   wordCount?: number;
   readingMinutes?: number;
+  publishedAt?: string | null;
 };
 
 export async function updateWork(input: UpdateWorkInput) {
@@ -136,6 +137,7 @@ export async function updateWork(input: UpdateWorkInput) {
   if (input.poetryMode !== undefined) patch.poetry_mode = input.poetryMode;
   if (input.wordCount !== undefined) patch.word_count = input.wordCount;
   if (input.readingMinutes !== undefined) patch.reading_minutes = input.readingMinutes;
+  if (input.publishedAt !== undefined) patch.published_at = input.publishedAt;
 
   const { data: rawData, error } = await supabase
     .from("works")
@@ -158,9 +160,16 @@ export async function publishWork(id: string) {
   await assertOwner();
   const supabase = getAdminSupabase();
 
+  const { data: existing } = await supabase
+    .from("works")
+    .select("published_at")
+    .eq("id", id)
+    .maybeSingle()
+    .returns<Pick<WorkRow, "published_at"> | null>();
+
   const patch: WorkUpdate = {
     status: "published",
-    published_at: new Date().toISOString()
+    published_at: existing?.published_at ?? new Date().toISOString()
   };
 
   const { data: rawData, error } = await supabase
@@ -280,6 +289,7 @@ export type UpdateChapterInput = {
   coverImage?: string | null;
   wordCount?: number;
   readingMinutes?: number;
+  publishedAt?: string | null;
 };
 
 export async function updateChapter(input: UpdateChapterInput) {
@@ -294,6 +304,7 @@ export async function updateChapter(input: UpdateChapterInput) {
   if (input.coverImage !== undefined) patch.cover_image = input.coverImage;
   if (input.wordCount !== undefined) patch.word_count = input.wordCount;
   if (input.readingMinutes !== undefined) patch.reading_minutes = input.readingMinutes;
+  if (input.publishedAt !== undefined) patch.published_at = input.publishedAt;
 
   const { data: rawData, error } = await supabase
     .from("chapters")
@@ -318,9 +329,16 @@ export async function publishChapter(id: string) {
   await assertOwner();
   const supabase = getAdminSupabase();
 
+  const { data: existing } = await supabase
+    .from("chapters")
+    .select("published_at")
+    .eq("id", id)
+    .maybeSingle()
+    .returns<Pick<ChapterRow, "published_at"> | null>();
+
   const patch: ChapterUpdate = {
     status: "published",
-    published_at: new Date().toISOString()
+    published_at: existing?.published_at ?? new Date().toISOString()
   };
 
   const { data: rawData, error } = await supabase

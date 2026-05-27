@@ -104,12 +104,12 @@
 
   .reader-prose em,
   .reader-prose i {
-    @apply font-italic italic text-ink/95;
+    @apply italic text-ink/95;
     font-size: 1.04em;
   }
 
   .reader-prose blockquote {
-    @apply font-italic italic text-ink/85 border-l-2 border-accent/40 pl-6 my-8;
+    @apply italic text-ink/85 border-l-2 border-accent/40 pl-6 my-8;
     font-size: 1.08em;
   }
 

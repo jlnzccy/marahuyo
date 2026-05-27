@@ -142,6 +142,9 @@ export interface SettingsRow {
   author_bio: string | null;
   author_bio_long: string | null;
   author_location: string | null;
+  about_place_title: string | null;
+  about_place_body: string | null;
+  about_place_quote: string | null;
   updated_at: string;
 }
 
@@ -161,6 +164,9 @@ export interface SettingsUpdate {
   author_bio?: string | null;
   author_bio_long?: string | null;
   author_location?: string | null;
+  about_place_title?: string | null;
+  about_place_body?: string | null;
+  about_place_quote?: string | null;
   updated_at?: string;
 }
 

@@ -6,7 +6,7 @@ import { ThemeProvider, themeInitScript } from "@/components/theme-provider";
 export const metadata: Metadata = {
   metadataBase: new URL("https://marahuyo.local"),
   title: {
-    default: "marahuyo — to be enchanted",
+    default: "marahuyo",
     template: "%s — marahuyo"
   },
   description:

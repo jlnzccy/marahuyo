@@ -125,6 +125,18 @@ Quiet additions that make the site feel finished.
 
 ---
 
+## Phase 3.5 — User Requested Improvements (Current Session)
+
+- [x] **Typography adjustments.** Removed `font-italic` (Instrument Serif) from `.reader-prose em, i, blockquote` — they now render Libre Baskerville's native italic. UI/decorative elements (`font-italic italic` classes elsewhere) keep Instrument Serif.
+- [x] **Browser tab title.** Removed ` — to be enchanted` from default site metadata title in `src/app/layout.tsx`.
+- [x] **Dynamic homepage closing quote.** Added `getRandomEpigraph()` in `src/lib/works.ts` — fetches published standalones with non-null subtitle, picks one at random. Section hidden if no epigraphs exist in DB.
+- [x] **Rename subtitle to epigraph.** Studio placeholders updated to "epigraph" in work and chapter editors. Epigraph styled in reader-shell as a small italic serif block with left border (classic epigraph look, not a subtitle line).
+- [x] **Manual publication date.** Date input added to work/chapter editor sidebars. Cannot be future (validated client-side, max=today). Auto-saves via debounce. `publishWork`/`publishChapter` preserve existing `published_at` rather than overwriting it; fall back to `now()` only if null.
+- [x] **Settings blank default overrides.** All author text fields in `getSiteSettings()` now use `??` (null-coalescing) instead of `||` — empty/null DB values return `""`, never fall back to mock content. `portraitUrl` keeps the gradient fallback to avoid broken `<Image>`. Conditional rendering added on home + about pages for subtitle/bio fields.
+- [x] **Editable "About this place" section.** Migration `0006_about_place_settings.sql` adds `about_place_title`, `about_place_body`, `about_place_quote` to `settings`. Wired through types → `getSiteSettings()` → settings action → settings form (new section) → `/about` rendering. Section hidden entirely if all three fields are empty.
+
+---
+
 ## Phase 4 — Future ideas (capture, don't commit)
 
 Things worth thinking about but **not** before Phase 1 / 2 are done.

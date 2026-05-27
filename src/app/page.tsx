@@ -8,7 +8,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { FeaturedCard } from "@/components/featured-card";
 import { WorkRow, workHref } from "@/components/work-row";
 import { FadeUp } from "@/components/motion";
-import { getFeaturedWork, getRecentDispatches } from "@/lib/works";
+import { getFeaturedWork, getRecentDispatches, getRandomEpigraph } from "@/lib/works";
 import { getSiteSettings } from "@/lib/settings";
 
 export default async function HomePage() {
@@ -19,6 +19,7 @@ export default async function HomePage() {
   const recent = recentRaw.filter((w) => w.id !== featured?.id).slice(0, 4);
 
   const { author } = await getSiteSettings();
+  const epigraph = await getRandomEpigraph();
 
   return (
     <>
@@ -104,9 +105,11 @@ export default async function HomePage() {
                   Hey — it&rsquo;s{" "}
                   <span className="font-italic italic font-normal">{author.name}</span>.
                 </h2>
-                <p className="mt-4 font-italic italic text-xl text-muted md:text-2xl">
-                  {author.subtitle}
-                </p>
+                {author.subtitle && (
+                  <p className="mt-4 font-italic italic text-xl text-muted md:text-2xl">
+                    {author.subtitle}
+                  </p>
+                )}
                 <p className="mt-6 max-w-prose font-serif text-reading-sm text-muted text-pretty">
                   {author.shortBio}
                 </p>
@@ -160,16 +163,18 @@ export default async function HomePage() {
         )}
 
         {/* ---------- Closing voice ---------- */}
-        <section className="pb-32">
-          <ReaderContainer>
-            <div className="rounded-2xl border border-border/60 bg-surface/40 p-8 text-center md:p-14">
-              <p className="font-italic italic text-2xl leading-snug text-ink text-pretty md:text-3xl">
-                &ldquo;The algorithm doesn&rsquo;t know who you listened with. This is its mercy. This is also the other thing.&rdquo;
-              </p>
-              <p className="meta mt-6">from &ldquo;Wrapped&rdquo;</p>
-            </div>
-          </ReaderContainer>
-        </section>
+        {epigraph && (
+          <section className="pb-32">
+            <ReaderContainer>
+              <div className="rounded-2xl border border-border/60 bg-surface/40 p-8 text-center md:p-14">
+                <p className="font-italic italic text-2xl leading-snug text-ink text-pretty md:text-3xl">
+                  &ldquo;{epigraph.text}&rdquo;
+                </p>
+                <p className="meta mt-6">from &ldquo;{epigraph.title}&rdquo;</p>
+              </div>
+            </ReaderContainer>
+          </section>
+        )}
       </main>
       <SiteFooter />
       <ThemeSwitcher />

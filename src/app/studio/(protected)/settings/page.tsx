@@ -20,7 +20,10 @@ const DEFAULTS: InitialSettings = {
   authorShortBio: "",
   authorBio: "",
   authorBioLong: "",
-  authorLocation: ""
+  authorLocation: "",
+  aboutPlaceTitle: "",
+  aboutPlaceBody: "",
+  aboutPlaceQuote: ""
 };
 
 export default async function StudioSettingsPage() {
@@ -39,8 +42,8 @@ export default async function StudioSettingsPage() {
           Couldn&rsquo;t load settings: {error.message}
         </p>
         <p className="mt-2 font-sans text-xs text-red-700/80">
-          Did you apply <code>supabase/migrations/0003_settings.sql</code> and{" "}
-          <code>0005_settings_about.sql</code>?
+          Did you apply <code>supabase/migrations/0003_settings.sql</code>,{" "}
+          <code>0005_settings_about.sql</code>, and <code>0006_about_place_settings.sql</code>?
         </p>
       </div>
     );
@@ -62,7 +65,10 @@ export default async function StudioSettingsPage() {
         authorShortBio: data.author_short_bio ?? "",
         authorBio: data.author_bio ?? "",
         authorBioLong: data.author_bio_long ?? "",
-        authorLocation: data.author_location ?? ""
+        authorLocation: data.author_location ?? "",
+        aboutPlaceTitle: data.about_place_title ?? "",
+        aboutPlaceBody: data.about_place_body ?? "",
+        aboutPlaceQuote: data.about_place_quote ?? ""
       }
     : DEFAULTS;
 
