@@ -2,7 +2,7 @@
 
 Organized so you can pick up any phase in a fresh session and know exactly what to do. Items are checkboxes — tick as you finish. Each phase is independent enough to ship on its own.
 
-Last updated: 2026-05-27. Phase 0 complete. Phase 1 complete: editor + Poetry node (round-trip verified) + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum, Highcrest 'm' favicon, gradient SVG fallbacks for mock covers. Remaining Phase 3: real cover/portrait photos (manual upload via Studio).
+Last updated: 2026-05-27. Phase 0 complete. Phase 1 complete: editor + Poetry node (round-trip verified) + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum, Highcrest 'm' favicon, gradient SVG fallbacks for mock covers. Remaining Phase 3: real cover/portrait photos (manual upload via Studio). Phase 1.7 complete: universal embed picker (YouTube/Instagram/Vimeo/Spotify/TikTok), inline dialogs (PromptDialog + AlertDialog replacing all window.prompt/alert), studio overview refresh (live stats + recent activity). Favicon SVG MIME type fixed.
 
 ---
 
@@ -101,9 +101,9 @@ All actions are in `src/app/studio/(protected)/_actions/works.ts`. Each re-check
 
 Things noticed once the CMS was actually used in production.
 
-- [ ] **Universal embed picker.** Replace the Instagram-only TipTap node with a generic `EmbedNode` that supports YouTube, Twitter/X, Spotify, Vimeo, TikTok, Bandcamp, and Instagram. One toolbar button opens an inline picker (provider + URL) instead of one button per platform. Probably: a `provider` attribute on the node, a per-provider URL → embed-src adapter, shared iframe wrapper, per-provider aspect ratio in CSS.
-- [ ] **Inline prompts everywhere.** Replace `window.prompt` / `window.alert` / `window.confirm` in the editor toolbar (link, image URL, Instagram URL, broken-URL warning) with site-themed inline UI. Reuse `ConfirmDialog` as the base; add a sibling `PromptDialog` and `AlertDialog`. Goal: no browser-native modals reach the user inside `/studio`.
-- [ ] **Refresh `/studio` overview.** The "Next session — The CMS is sketched, not yet wired" card is stale (CMS is now wired). Replace with something live: recent activity (last 5 edited rows), draft count, or a quiet "today" panel. Or delete the card and keep the four quick-action tiles.
+- [x] **Universal embed picker.** Replaced `InstagramNode` with a generic `EmbedNode` supporting YouTube, Instagram, Vimeo, Spotify, and TikTok. Single "Embed media" toolbar button opens an inline popover (`embed-picker.tsx`) with provider pills + URL input + auto-detect. Per-provider URL → embed-src adapters in `embed-node.ts`. Legacy `div.instagram-embed` still parsed for backward compat. Bandcamp and Twitter/X skipped for now.
+- [x] **Inline prompts everywhere.** Created `PromptDialog` (text input) and `AlertDialog` (message + OK) as siblings to `ConfirmDialog`. Replaced all 4× `window.prompt` and 1× `window.alert` in `editor-toolbar.tsx` and `editor-bubble-menu.tsx`. Zero browser-native modals reach the user inside `/studio`.
+- [x] **Refresh `/studio` overview.** Replaced the stale "CMS is sketched" card with live data: stats bar (drafts / published / words written) + recent activity feed (last 5 edited works with kind badge, status pill, relative timestamp). Server-side data via `studio-stats.ts` using admin client.
 - [x] **Home button in the public nav.** Added `Home` entry to `src/components/site-header.tsx` `NAV` array, sits before Works / About / Contact.
 
 ---
