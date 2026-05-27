@@ -9,11 +9,22 @@ import { ReadingProgress } from "@/components/reading-progress";
 import { ReaderFoot } from "@/components/reader-foot";
 import { KindChip } from "@/components/kind-chip";
 import { LikeButton } from "@/components/like-button";
+import { ShareButton } from "@/components/share-button";
+import { BookmarkTracker } from "@/components/bookmark-tracker";
 import { FadeUp } from "@/components/motion";
 import { cn } from "@/lib/cn";
 import type { WorkKind } from "@/types/content";
 
 type FootLink = { href: string; label: string; hint?: string };
+
+type Bookmark = {
+  href: string;
+  title: string;
+  kind: WorkKind;
+  subtitle?: string;
+  /** Stable id used in localStorage. e.g. "read/<slug>" or "series/<slug>/<chapter>". */
+  key: string;
+};
 
 type Props = {
   kind: WorkKind;
@@ -29,6 +40,8 @@ type Props = {
   index?: FootLink | null;
   /** Stable id for the localStorage like-toggle. Omit to hide the heart. */
   likeKey?: string;
+  /** When set, records a visit in localStorage so the homepage rail surfaces it. */
+  bookmark?: Bookmark;
 };
 
 export function ReaderShell({
@@ -43,10 +56,20 @@ export function ReaderShell({
   prev,
   next,
   index,
-  likeKey
+  likeKey,
+  bookmark
 }: Props) {
   return (
     <>
+      {bookmark && (
+        <BookmarkTracker
+          key_={bookmark.key}
+          href={bookmark.href}
+          title={bookmark.title}
+          kind={bookmark.kind}
+          subtitle={bookmark.subtitle}
+        />
+      )}
       <ReadingProgress />
       <SiteHeader scrollAware />
       <main className="pt-12 pb-24 md:pt-20">
@@ -114,11 +137,12 @@ export function ReaderShell({
             />
           </FadeUp>
 
-          {likeKey && (
-            <FadeUp delay={0.08}>
-              <LikeButton keyId={likeKey} />
-            </FadeUp>
-          )}
+          <FadeUp delay={0.08}>
+            <div className="reader-actions mt-10 flex items-center gap-2">
+              {likeKey && <LikeButton keyId={likeKey} />}
+              <ShareButton title={title} text={subtitle} />
+            </div>
+          </FadeUp>
 
           {(prev || next) && (
             <FadeUp delay={0.1}>

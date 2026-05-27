@@ -7,6 +7,7 @@ import { ReaderContainer } from "@/components/reader-container";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { FeaturedCard } from "@/components/featured-card";
 import { WorkRow, workHref } from "@/components/work-row";
+import { ContinueReading } from "@/components/continue-reading";
 import { FadeUp } from "@/components/motion";
 import { getFeaturedWork, getRecentDispatches, getRandomEpigraph } from "@/lib/works";
 import { getSiteSettings } from "@/lib/settings";
@@ -124,6 +125,9 @@ export default async function HomePage() {
             </div>
           </ReaderContainer>
         </section>
+
+        {/* ---------- Continue reading (client, localStorage-driven) ---------- */}
+        <ContinueReading />
 
         {/* ---------- Recent dispatches ---------- */}
         {recent.length > 0 && (

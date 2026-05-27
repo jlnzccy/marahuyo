@@ -2,7 +2,7 @@
 
 Organized so you can pick up any phase in a fresh session and know exactly what to do. Items are checkboxes — tick as you finish. Each phase is independent enough to ship on its own.
 
-Last updated: 2026-05-27. Phase 0 complete. Phase 1 complete: editor + Poetry node (round-trip verified) + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum, Highcrest 'm' favicon, gradient SVG fallbacks for mock covers. Remaining Phase 3: real cover/portrait photos (manual upload via Studio). Phase 1.7 complete: universal embed picker (YouTube/Instagram/Vimeo/Spotify/TikTok), inline dialogs (PromptDialog + AlertDialog replacing all window.prompt/alert), studio overview refresh (live stats + recent activity). Favicon SVG MIME type fixed. Phase 3.6 complete: bubble menu z-30, in-editor image upload (Supabase storage via `editor/<id>` prefix), footer tagline removed, themed DatePicker, localStorage LikeButton on reader pages, homepage epigraph links to source work.
+Last updated: 2026-05-27. Phase 0 complete. Phase 1 complete: editor + Poetry node (round-trip verified) + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum, Highcrest 'm' favicon, gradient SVG fallbacks for mock covers. Remaining Phase 3: real cover/portrait photos (manual upload via Studio). Phase 1.7 complete: universal embed picker (YouTube/Instagram/Vimeo/Spotify/TikTok), inline dialogs (PromptDialog + AlertDialog replacing all window.prompt/alert), studio overview refresh (live stats + recent activity). Favicon SVG MIME type fixed. Phase 3.6 complete: bubble menu z-30, in-editor image upload (Supabase storage via `editor/<id>` prefix), footer tagline removed, themed DatePicker, localStorage LikeButton on reader pages, homepage epigraph links to source work. Phase 4 frontend trio done: localStorage bookmarks + continue-reading rail, Web-Share button with clipboard fallback, print stylesheet.
 
 ---
 
@@ -152,9 +152,9 @@ Quiet additions that make the site feel finished.
 
 Things worth thinking about but **not** before Phase 1 / 2 are done.
 
-- [ ] Reader bookmarks — `localStorage` keyed by slug; show a "continue reading" rail on Homepage. No server state needed.
-- [ ] Web-Share API on every reader page (`navigator.share`) for native mobile share.
-- [ ] Print stylesheet — `@media print` block in `globals.css` so essays print as actual essays.
+- [x] Reader bookmarks — `localStorage` keyed by slug; "Continue reading" rail on homepage. `src/lib/bookmarks.ts` storage helper, `BookmarkTracker` mounts on reader pages and records visits, `ContinueReading` client component on `/` renders the rail (hidden when empty, dismiss button per card).
+- [x] Web-Share API on reader pages — `ShareButton` next to LikeButton in the new `.reader-actions` row; tries `navigator.share` then falls back to clipboard with a transient "copied" pill.
+- [x] Print stylesheet — `@media print` block in `globals.css`. Forces black-on-white regardless of theme, hides `header`/`footer`/`.no-print`/`.reader-actions`/chapter nav, appends URLs after links, caps cover image height, page-break hygiene on headings + paragraphs + poetry, stubs out iframe embeds.
 - [ ] Optional later: add Supabase schema sync via GitHub Action (`supabase db push` on main) — free, ~30 min setup. Useful only once schema changes start happening frequently.
 - [ ] Optional later: brute-force protection on `/studio/login` — current implementation has no rate limit. Add a simple in-memory or Vercel KV counter if you ever expose this URL publicly.
 

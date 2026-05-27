@@ -55,50 +55,48 @@ export function LikeButton({ keyId }: Props) {
   const particles = Array.from({ length: 10 }, (_, i) => i);
 
   return (
-    <div className="mt-10 flex justify-start">
-      <button
-        type="button"
-        onClick={toggle}
-        aria-pressed={showLiked}
-        aria-label={showLiked ? "Remove from liked" : "Like this piece"}
-        className={cn(
-          "relative inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors",
-          showLiked ? "text-ink" : "text-whisper hover:text-ink"
-        )}
-      >
-        {/* Particle ring — only mounted during burst */}
-        {bursting && (
-          <span aria-hidden className="pointer-events-none absolute inset-0">
-            {particles.map((i) => {
-              const angle = (i / particles.length) * 360;
-              const radius = 28 + (i % 2) * 6;
-              const color = i % 2 === 0 ? "rgb(239,68,68)" : "rgb(252,165,165)";
-              return (
-                <span
-                  key={i}
-                  className="heart-particle"
-                  style={
-                    {
-                      background: color,
-                      ["--a" as string]: `${angle}deg`,
-                      ["--r" as string]: `${radius}px`
-                    } as React.CSSProperties
-                  }
-                />
-              );
-            })}
-          </span>
-        )}
+    <button
+      type="button"
+      onClick={toggle}
+      aria-pressed={showLiked}
+      aria-label={showLiked ? "Remove from liked" : "Like this piece"}
+      className={cn(
+        "relative inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors",
+        showLiked ? "text-ink" : "text-whisper hover:text-ink"
+      )}
+    >
+      {/* Particle ring — only mounted during burst */}
+      {bursting && (
+        <span aria-hidden className="pointer-events-none absolute inset-0">
+          {particles.map((i) => {
+            const angle = (i / particles.length) * 360;
+            const radius = 28 + (i % 2) * 6;
+            const color = i % 2 === 0 ? "rgb(239,68,68)" : "rgb(252,165,165)";
+            return (
+              <span
+                key={i}
+                className="heart-particle"
+                style={
+                  {
+                    background: color,
+                    ["--a" as string]: `${angle}deg`,
+                    ["--r" as string]: `${radius}px`
+                  } as React.CSSProperties
+                }
+              />
+            );
+          })}
+        </span>
+      )}
 
-        <Heart
-          className={cn(
-            "h-5 w-5 transition-all duration-300",
-            bursting && "heart-burst-icon"
-          )}
-          fill={showLiked ? "currentColor" : "none"}
-          strokeWidth={1.5}
-        />
-      </button>
-    </div>
+      <Heart
+        className={cn(
+          "h-5 w-5 transition-all duration-300",
+          bursting && "heart-burst-icon"
+        )}
+        fill={showLiked ? "currentColor" : "none"}
+        strokeWidth={1.5}
+      />
+    </button>
   );
 }

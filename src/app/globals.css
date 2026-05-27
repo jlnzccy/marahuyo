@@ -306,3 +306,125 @@ html[data-theme-init] body {
   animation: heart-particle 700ms cubic-bezier(0.18, 0.72, 0.32, 1) both;
   animation-delay: 40ms;
 }
+
+/* =========================================================
+   Print — reader pages print as clean essays.
+   Hides site chrome, normalizes color, shows link URLs.
+   ========================================================= */
+
+@media print {
+  /* Force a true white page regardless of theme */
+  :root,
+  [data-theme="cream"],
+  [data-theme="light"],
+  [data-theme="midnight"] {
+    --canvas: 255 255 255;
+    --surface: 255 255 255;
+    --ink: 0 0 0;
+    --muted: 60 60 60;
+    --whisper: 100 100 100;
+    --accent: 0 0 0;
+    --border: 200 200 200;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Strip chrome: header, footer, floating controls, reader nav row */
+  header,
+  footer,
+  .no-print,
+  .reader-actions,
+  nav[aria-label="Chapter navigation"] {
+    display: none !important;
+  }
+
+  /* Reset reader main spacing — no need for the breathing room on paper */
+  main {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Cover image: keep but cap so it doesn't eat the first page */
+  .reader-prose img,
+  figure img {
+    max-height: 3.5in;
+    object-fit: contain !important;
+  }
+
+  /* Prose: black ink, no underline decoration on links — append URL instead */
+  .reader-prose,
+  .reader-prose p,
+  .reader-prose li,
+  .reader-prose blockquote,
+  .reader-prose em,
+  .reader-prose i {
+    color: #000 !important;
+  }
+
+  .reader-prose a {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+
+  .reader-prose a[href^="http"]::after,
+  .reader-prose a[href^="/"]::after {
+    content: " (" attr(href) ")";
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.78em;
+    color: #444;
+    word-break: break-all;
+  }
+
+  /* Don't double-print inline anchors that are obviously just decoration */
+  .reader-prose a[href^="#"]::after {
+    content: "";
+  }
+
+  /* Page-break hygiene */
+  .reader-prose h1,
+  .reader-prose h2,
+  .reader-prose h3,
+  h1, h2, h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .reader-prose p,
+  .reader-prose blockquote,
+  .reader-prose .poetry,
+  .reader-prose figure {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Scene break glyph still useful on paper */
+  .reader-prose hr::after,
+  .reader-prose .scene-break::after {
+    color: #888;
+  }
+
+  /* Hide embeds — iframes don't print well, leave a stub link */
+  .reader-prose .embed-block iframe,
+  .reader-prose .instagram-embed iframe {
+    display: none !important;
+  }
+  .reader-prose .embed-block::after,
+  .reader-prose .instagram-embed::after {
+    content: "[embedded media omitted in print]";
+    display: block;
+    text-align: center;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.8em;
+    color: #666;
+    padding: 0.5em 0;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 0.75in;
+  }
+}

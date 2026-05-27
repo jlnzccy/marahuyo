@@ -73,6 +73,13 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
         hint: series.title
       }}
       likeKey={`series/${series.slug}/${c.slug}`}
+      bookmark={{
+        key: `series/${series.slug}/${c.slug}`,
+        href: `/series/${series.slug}/${c.slug}`,
+        title: `${c.title} — ${series.title}`,
+        kind: "series",
+        subtitle: c.subtitle
+      }}
     />
   );
 }

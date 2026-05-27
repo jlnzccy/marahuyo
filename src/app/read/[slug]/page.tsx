@@ -51,6 +51,13 @@ export default async function ReadPage({ params }: { params: Promise<Params> }) 
       next={null}
       index={{ href: "/works", label: "All works", hint: "Return to the archive" }}
       likeKey={`read/${work.slug}`}
+      bookmark={{
+        key: `read/${work.slug}`,
+        href: `/read/${work.slug}`,
+        title: work.title,
+        kind: work.kind,
+        subtitle: work.subtitle
+      }}
     />
   );
 }
