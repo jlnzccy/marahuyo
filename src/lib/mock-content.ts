@@ -1,6 +1,23 @@
 import type { AnyWork, Chapter, Series, StandaloneWork } from "@/types/content";
 
 // =============================================================================
+// Gradient cover helper
+// =============================================================================
+//
+// Picsum placeholders replaced with self-contained SVG data URIs so the local
+// fallback (when DB is empty) shows tone-appropriate gradients instead of random
+// stock photos. Real covers are uploaded via /studio/works/[id] → CoverUploader.
+
+function gradientCover(from: string, to: string, deg = 135): string {
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='xMidYMid slice'>` +
+    `<defs><linearGradient id='g' gradientTransform='rotate(${deg} 0.5 0.5)'>` +
+    `<stop offset='0' stop-color='${from}'/><stop offset='1' stop-color='${to}'/>` +
+    `</linearGradient></defs><rect width='1000' height='1000' fill='url(%23g)'/></svg>`;
+  return `data:image/svg+xml;utf8,${svg.replace(/#/g, "%23")}`;
+}
+
+// =============================================================================
 // Author voice
 // =============================================================================
 
@@ -21,9 +38,9 @@ export const AUTHOR = {
   subtitle: "Dating cactus sa paso.",
   location: "Quezon City, Philippines",
   /** Replace with a real portrait when you have one. */
-  portraitUrl: "https://picsum.photos/seed/jae-portrait/900/1100",
+  portraitUrl: gradientCover("#fde68a", "#a16207", 165),
   /** Used as Instagram/social profile imagery in cards. */
-  avatarUrl: "https://picsum.photos/seed/jae-avatar/240/240"
+  avatarUrl: gradientCover("#fde68a", "#a16207", 165)
 };
 
 // =============================================================================
@@ -45,7 +62,7 @@ export const ESSAYS: StandaloneWork[] = [
       "the algorithm doesn't know who you listened with. this is its mercy. this is also the other thing.",
     wordCount: 1240,
     readingMinutes: 2,
-    coverImage: "https://picsum.photos/seed/wrapped-bus/1600/1100",
+    coverImage: gradientCover("#1a2540", "#c9a96a", 150),
     body: `<p class="drop-cap">The bus was the 11 PM Victory Liner to Baguio, ₱550, the kind where the AC drips on whoever has the window seat and they pretend not to notice for the first hour and then give up and shift their bag onto their lap so it doesn't get wet.</p>
 <p>He had the window. The other one had the aisle.</p>
 <p>Two hours. Somewhere past Bulacan the other one pulled out one earbud and held it out without looking, the way you offer somebody a piece of food you're not sure they'll want, and he took it because what else do you do with an earbud somebody is holding out to you at 1 AM on a bus.</p>
@@ -71,7 +88,7 @@ export const ESSAYS: StandaloneWork[] = [
       "What the Black Eyed Peas video taught us about who got to be sexy, and who got to be a joke. A long apology, twenty years late.",
     wordCount: 1640,
     readingMinutes: 8,
-    coverImage: "https://picsum.photos/seed/bebot-2000s/1600/1100",
+    coverImage: gradientCover("#9b3a4a", "#e0a87a", 140),
     body: `<p class="drop-cap">My older cousins played the <em>Bebot</em> music video on loop in 2006 and we, the small ones in the back of the living room, learned the choreography from the seats of plastic monoblocs. We did not yet have the language for what we were watching. We had the choreography. That was almost the same thing.</p>
 <p>What I remember now is not the song. The song is fine. What I remember is the way the camera moved when the girls came on. The way the boys in the video looked at them. The way our titos in the back laughed in a particular register I would not understand for another ten years.</p>
 <p>The girls in the <em>Bebot</em> video were Filipinas. They were also, the video made very clear, a punchline. A spectacle. A delivery system for a chorus that was, on its surface, a love song, and underneath, a very specific kind of joke about who Filipina girls were allowed to be on a global stage.</p>
@@ -101,7 +118,7 @@ export const ONESHOTS: StandaloneWork[] = [
       "I read, write, and come up with some nonsense things — especially when I'm hungry at night.",
     wordCount: 380,
     readingMinutes: 2,
-    coverImage: "https://picsum.photos/seed/3am-notes/1600/1100",
+    coverImage: gradientCover("#2d3a36", "#d6ccb0", 155),
     body: `<p class="drop-cap">I read, write, and come up with some nonsense things especially when I'm hungry at night.</p>
 <p>I think by doing this kind of thing it will save some of my thoughts — or else I'll forget them like I had never thought of them. It's not all about bullshit or nonsense. In fact, I sometimes come up with amazing ideas that go to waste because I either forget them or can't remember them later.</p>
 <p>Constantly making your brain rack just to remember what it is again — how funny, how ridiculous it can be — but having a bad short-term memory <em>sucks</em>.</p>
@@ -131,7 +148,7 @@ export const POEMS: StandaloneWork[] = [
     wordCount: 96,
     readingMinutes: 1,
     poetryMode: true,
-    coverImage: "https://picsum.photos/seed/cactus-paso/1600/1100",
+    coverImage: gradientCover("#7a4a30", "#d4a574", 135),
     body: `<div class="poetry">noong past life ko raw
 ay isa akong cactus
 na nasa paso.
@@ -199,7 +216,7 @@ export const SERIES: Series[] = [
       "A slow serial about the nights you do not sleep through. Still in the notebook stage.",
     wordCount: 0,
     readingMinutes: 0,
-    coverImage: "https://picsum.photos/seed/sleepless/1200/1500",
+    coverImage: gradientCover("#1f2630", "#5a6478", 175),
     coverColor: "rgb(82 82 88 / 0.18)",
     chapters: SLEEPLESS_CHAPTERS
   }

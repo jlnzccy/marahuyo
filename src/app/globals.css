@@ -139,7 +139,45 @@
     font-size: 18px;
   }
 
-  /* Instagram embed */
+  /* Universal embed block */
+  .reader-prose .embed-block,
+  .embed-block {
+    @apply my-10 mx-auto block;
+    max-width: 680px;
+  }
+  .reader-prose .embed-block iframe,
+  .embed-block iframe {
+    @apply w-full rounded-md border border-border/60 bg-canvas;
+  }
+
+  /* Per-provider aspect ratios */
+  .embed-block[data-embed-provider="youtube"] iframe,
+  .embed-block[data-embed-provider="vimeo"] iframe {
+    aspect-ratio: 16 / 9;
+  }
+  .embed-block[data-embed-provider="instagram"] iframe {
+    aspect-ratio: 1 / 1;
+    min-height: 560px;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+  .embed-block[data-embed-provider="spotify"] iframe {
+    height: 352px;
+  }
+  .embed-block[data-embed-provider="tiktok"] iframe {
+    aspect-ratio: 9 / 16;
+    max-height: 740px;
+    max-width: 340px;
+    margin: 0 auto;
+  }
+
+  /* Broken embed fallback */
+  .reader-prose .embed-block-broken,
+  .embed-block-broken {
+    @apply rounded-md border border-red-400/40 bg-red-500/5 p-4 text-center font-mono text-xs text-red-700;
+  }
+
+  /* Legacy compat — old Instagram embeds still render */
   .reader-prose .instagram-embed,
   .instagram-embed {
     @apply my-10 mx-auto block;

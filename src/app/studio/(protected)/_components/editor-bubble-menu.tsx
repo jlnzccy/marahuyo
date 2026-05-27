@@ -1,9 +1,11 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { Bold, Italic, Link as LinkIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { PromptDialog } from "./prompt-dialog";
 
 type Props = { editor: Editor };
 
@@ -41,46 +43,75 @@ function BubbleButton({
  * italic / link marks don't apply — code: true strips marks).
  */
 export function EditorBubbleMenu({ editor }: Props) {
-  const promptForLink = () => {
+  const [linkPromptOpen, setLinkPromptOpen] = useState(false);
+  const [linkDefault, setLinkDefault] = useState("");
+
+  const openLinkPrompt = () => {
     const prev = editor.getAttributes("link").href ?? "";
-    const url = window.prompt("Link URL", prev || "https://");
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    setLinkDefault(prev || "https://");
+    setLinkPromptOpen(true);
   };
 
+  const handleLinkConfirm = useCallback(
+    (value: string) => {
+      if (value === "") {
+        editor.chain().focus().unsetLink().run();
+      } else {
+        editor.chain().focus().extendMarkRange("link").setLink({ href: value }).run();
+      }
+      setLinkPromptOpen(false);
+    },
+    [editor]
+  );
+
+  const handleLinkCancel = useCallback(() => {
+    setLinkPromptOpen(false);
+    editor.chain().focus().run();
+  }, [editor]);
+
   return (
-    <BubbleMenu
-      editor={editor}
-      options={{ placement: "top" }}
-      shouldShow={({ editor, from, to }) => {
-        if (from === to) return false;
-        if (editor.isActive("poetry")) return false;
-        return editor.isEditable;
-      }}
-      className="flex items-center gap-0.5 rounded-md border border-ink/20 bg-ink/95 p-1 shadow-lg backdrop-blur"
-    >
-      <BubbleButton
-        label="Bold"
-        icon={Bold}
-        active={editor.isActive("bold")}
-        onClick={() => editor.chain().focus().toggleBold().run()}
+    <>
+      <BubbleMenu
+        editor={editor}
+        options={{ placement: "top" }}
+        shouldShow={({ editor, from, to }) => {
+          if (from === to) return false;
+          if (editor.isActive("poetry")) return false;
+          return editor.isEditable;
+        }}
+        className="flex items-center gap-0.5 rounded-md border border-ink/20 bg-ink/95 p-1 shadow-lg backdrop-blur"
+      >
+        <BubbleButton
+          label="Bold"
+          icon={Bold}
+          active={editor.isActive("bold")}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+        />
+        <BubbleButton
+          label="Italic"
+          icon={Italic}
+          active={editor.isActive("italic")}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+        />
+        <BubbleButton
+          label="Link"
+          icon={LinkIcon}
+          active={editor.isActive("link")}
+          onClick={openLinkPrompt}
+        />
+      </BubbleMenu>
+
+      {/* Themed link prompt — replaces window.prompt */}
+      <PromptDialog
+        open={linkPromptOpen}
+        title="Link URL"
+        description="Leave empty and confirm to remove an existing link."
+        placeholder="https://…"
+        defaultValue={linkDefault}
+        confirmLabel="Set link"
+        onConfirm={handleLinkConfirm}
+        onCancel={handleLinkCancel}
       />
-      <BubbleButton
-        label="Italic"
-        icon={Italic}
-        active={editor.isActive("italic")}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-      />
-      <BubbleButton
-        label="Link"
-        icon={LinkIcon}
-        active={editor.isActive("link")}
-        onClick={promptForLink}
-      />
-    </BubbleMenu>
+    </>
   );
 }

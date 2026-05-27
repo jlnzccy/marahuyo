@@ -8,7 +8,7 @@ import Image from "@tiptap/extension-image";
 import CharacterCount from "@tiptap/extension-character-count";
 import { useEffect, useRef } from "react";
 import { PoetryNode } from "./extensions/poetry-node";
-import { InstagramNode } from "./extensions/instagram-node";
+import { EmbedNode } from "./extensions/embed-node";
 import { EditorToolbar } from "./editor-toolbar";
 import { EditorBubbleMenu } from "./editor-bubble-menu";
 
@@ -59,7 +59,7 @@ export function Editor({ initialContent, onChange, placeholder }: Props) {
       Image.configure({ inline: false, allowBase64: false }),
       CharacterCount,
       PoetryNode,
-      InstagramNode
+      EmbedNode
     ],
     content: initialContent || "",
     editorProps: {

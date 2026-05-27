@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import {
   Bold,
@@ -15,9 +16,11 @@ import {
   Undo2,
   Redo2,
   Image as ImageIcon,
-  Instagram
+  Code2
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { PromptDialog } from "./prompt-dialog";
+import { EmbedPicker } from "./embed-picker";
 
 type Props = {
   editor: Editor;
@@ -29,11 +32,13 @@ type ButtonProps = {
   disabled?: boolean;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  buttonRef?: React.Ref<HTMLButtonElement>;
 };
 
-function ToolButton({ onClick, active, disabled, label, icon: Icon }: ButtonProps) {
+function ToolButton({ onClick, active, disabled, label, icon: Icon, buttonRef }: ButtonProps) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={onClick}
       disabled={disabled}
@@ -55,123 +60,175 @@ function Divider() {
   return <span aria-hidden className="mx-1 h-5 w-px bg-border/70" />;
 }
 
+/* ------------------------------------------------------------------
+   Prompt dialog states
+   ------------------------------------------------------------------ */
+
+type PromptState =
+  | { kind: "closed" }
+  | { kind: "link"; defaultValue: string }
+  | { kind: "image" };
+
 export function EditorToolbar({ editor }: Props) {
-  const promptForLink = () => {
+  /* -- prompt dialog ------------------------------------------------ */
+  const [prompt, setPrompt] = useState<PromptState>({ kind: "closed" });
+
+  const openLinkPrompt = () => {
     const prev = editor.getAttributes("link").href ?? "";
-    const url = window.prompt("Link URL", prev || "https://");
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    setPrompt({ kind: "link", defaultValue: prev || "https://" });
   };
 
-  const promptForImage = () => {
-    const url = window.prompt("Image URL");
-    if (!url) return;
-    editor.chain().focus().setImage({ src: url }).run();
+  const openImagePrompt = () => {
+    setPrompt({ kind: "image" });
   };
 
-  const promptForInstagram = () => {
-    const url = window.prompt(
-      "Instagram post URL",
-      "https://www.instagram.com/p/"
-    );
-    if (!url) return;
-    const ok = editor.chain().focus().setInstagram({ url }).run();
-    if (!ok) {
-      window.alert(
-        "That doesn't look like an Instagram post/reel URL. Expected /p/<id> or /reel/<id>."
-      );
-    }
-  };
+  const handlePromptConfirm = useCallback(
+    (value: string) => {
+      if (prompt.kind === "link") {
+        if (value === "") {
+          editor.chain().focus().unsetLink().run();
+        } else {
+          editor.chain().focus().extendMarkRange("link").setLink({ href: value }).run();
+        }
+      } else if (prompt.kind === "image") {
+        if (value) {
+          editor.chain().focus().setImage({ src: value }).run();
+        }
+      }
+      setPrompt({ kind: "closed" });
+    },
+    [prompt, editor]
+  );
+
+  const handlePromptCancel = useCallback(() => {
+    setPrompt({ kind: "closed" });
+    editor.chain().focus().run();
+  }, [editor]);
+
+  /* -- embed picker ------------------------------------------------- */
+  const [embedOpen, setEmbedOpen] = useState(false);
+  const embedBtnRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <div className="sticky top-16 z-20 flex flex-wrap items-center gap-0.5 rounded-lg border border-border/70 bg-canvas/85 p-1 backdrop-blur">
-      <ToolButton
-        label="Heading 2"
-        icon={Heading2}
-        active={editor.isActive("heading", { level: 2 })}
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-      />
-      <ToolButton
-        label="Heading 3"
-        icon={Heading3}
-        active={editor.isActive("heading", { level: 3 })}
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+    <div className="relative">
+      <div className="sticky top-16 z-20 flex flex-wrap items-center gap-0.5 rounded-lg border border-border/70 bg-canvas/85 p-1 backdrop-blur">
+        <ToolButton
+          label="Heading 2"
+          icon={Heading2}
+          active={editor.isActive("heading", { level: 2 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        />
+        <ToolButton
+          label="Heading 3"
+          icon={Heading3}
+          active={editor.isActive("heading", { level: 3 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        />
+
+        <Divider />
+
+        <ToolButton
+          label="Bold"
+          icon={Bold}
+          active={editor.isActive("bold")}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+        />
+        <ToolButton
+          label="Italic"
+          icon={Italic}
+          active={editor.isActive("italic")}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+        />
+        <ToolButton label="Link" icon={LinkIcon} active={editor.isActive("link")} onClick={openLinkPrompt} />
+
+        <Divider />
+
+        <ToolButton
+          label="Bullet list"
+          icon={List}
+          active={editor.isActive("bulletList")}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+        />
+        <ToolButton
+          label="Numbered list"
+          icon={ListOrdered}
+          active={editor.isActive("orderedList")}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        />
+        <ToolButton
+          label="Block quote"
+          icon={Quote}
+          active={editor.isActive("blockquote")}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        />
+        <ToolButton
+          label="Scene break"
+          icon={Minus}
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+        />
+
+        <Divider />
+
+        <ToolButton
+          label="Poetry block (preserves indents)"
+          icon={Feather}
+          active={editor.isActive("poetry")}
+          onClick={() => editor.chain().focus().toggleNode("poetry", "paragraph").run()}
+        />
+        <ToolButton label="Image" icon={ImageIcon} onClick={openImagePrompt} />
+        <ToolButton
+          label="Embed media"
+          icon={Code2}
+          active={embedOpen}
+          onClick={() => setEmbedOpen((o) => !o)}
+          buttonRef={embedBtnRef}
+        />
+
+        <Divider />
+
+        <ToolButton
+          label="Undo"
+          icon={Undo2}
+          disabled={!editor.can().undo()}
+          onClick={() => editor.chain().focus().undo().run()}
+        />
+        <ToolButton
+          label="Redo"
+          icon={Redo2}
+          disabled={!editor.can().redo()}
+          onClick={() => editor.chain().focus().redo().run()}
+        />
+      </div>
+
+      {/* Embed picker popover — absolutely positioned below the toolbar */}
+      <EmbedPicker
+        editor={editor}
+        open={embedOpen}
+        onClose={() => {
+          setEmbedOpen(false);
+          editor.chain().focus().run();
+        }}
+        anchorRef={embedBtnRef}
       />
 
-      <Divider />
-
-      <ToolButton
-        label="Bold"
-        icon={Bold}
-        active={editor.isActive("bold")}
-        onClick={() => editor.chain().focus().toggleBold().run()}
+      {/* Themed prompt dialogs — replace all window.prompt calls */}
+      <PromptDialog
+        open={prompt.kind === "link"}
+        title="Link URL"
+        description="Leave empty and confirm to remove an existing link."
+        placeholder="https://…"
+        defaultValue={prompt.kind === "link" ? prompt.defaultValue : ""}
+        confirmLabel="Set link"
+        onConfirm={handlePromptConfirm}
+        onCancel={handlePromptCancel}
       />
-      <ToolButton
-        label="Italic"
-        icon={Italic}
-        active={editor.isActive("italic")}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-      />
-      <ToolButton label="Link" icon={LinkIcon} active={editor.isActive("link")} onClick={promptForLink} />
-
-      <Divider />
-
-      <ToolButton
-        label="Bullet list"
-        icon={List}
-        active={editor.isActive("bulletList")}
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-      />
-      <ToolButton
-        label="Numbered list"
-        icon={ListOrdered}
-        active={editor.isActive("orderedList")}
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-      />
-      <ToolButton
-        label="Block quote"
-        icon={Quote}
-        active={editor.isActive("blockquote")}
-        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-      />
-      <ToolButton
-        label="Scene break"
-        icon={Minus}
-        onClick={() => editor.chain().focus().setHorizontalRule().run()}
-      />
-
-      <Divider />
-
-      <ToolButton
-        label="Poetry block (preserves indents)"
-        icon={Feather}
-        active={editor.isActive("poetry")}
-        onClick={() => editor.chain().focus().toggleNode("poetry", "paragraph").run()}
-      />
-      <ToolButton label="Image" icon={ImageIcon} onClick={promptForImage} />
-      <ToolButton
-        label="Embed Instagram post"
-        icon={Instagram}
-        onClick={promptForInstagram}
-      />
-
-      <Divider />
-
-      <ToolButton
-        label="Undo"
-        icon={Undo2}
-        disabled={!editor.can().undo()}
-        onClick={() => editor.chain().focus().undo().run()}
-      />
-      <ToolButton
-        label="Redo"
-        icon={Redo2}
-        disabled={!editor.can().redo()}
-        onClick={() => editor.chain().focus().redo().run()}
+      <PromptDialog
+        open={prompt.kind === "image"}
+        title="Image URL"
+        placeholder="https://…"
+        confirmLabel="Insert image"
+        onConfirm={handlePromptConfirm}
+        onCancel={handlePromptCancel}
       />
     </div>
   );

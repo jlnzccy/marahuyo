@@ -2,7 +2,7 @@
 
 Organized so you can pick up any phase in a fresh session and know exactly what to do. Items are checkboxes — tick as you finish. Each phase is independent enough to ship on its own.
 
-Last updated: 2026-05-27. Phase 0 complete. Phase 1 complete: editor + Poetry node + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum all live. Remaining Phase 3 items: real cover/portrait photos, favicon redraw — manual asset work.
+Last updated: 2026-05-27. Phase 0 complete. Phase 1 complete: editor + Poetry node (round-trip verified) + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum, Highcrest 'm' favicon, gradient SVG fallbacks for mock covers. Remaining Phase 3: real cover/portrait photos (manual upload via Studio).
 
 ---
 
@@ -41,7 +41,7 @@ Make the writing room usable.
 - [x] `code: true`, `content: 'text*'` — preserves whitespace + soft returns.
 - [x] Toolbar feather icon toggles into / out of poetry mode.
 - [x] Enter and Shift-Enter inside poetry insert literal `\n` rather than splitting the block.
-- [ ] Round-trip test: open `/studio/works/new` after applying the migration, paste a verse with 3-space indents and soft returns, publish, and confirm `/read/<slug>` renders byte-identical whitespace.
+- [x] Round-trip test: pasted verse with 3-space indents + soft returns + blank lines into `/studio/works/new` poetry block, published, `/read/test` renders byte-identical whitespace via `white-space: pre-wrap` on `.poetry`. (DevTools text preview collapses `\n` cosmetically — actual textContent preserves them.)
 
 ### 1.3 — Auto-save ✅ DONE
 
@@ -116,10 +116,10 @@ Quiet additions that make the site feel finished.
 - [x] `app/robots.ts` — allows everything except `/studio/*`.
 - [x] `app/feed.xml/route.ts` — RSS for recent standalone dispatches (1h cache).
 - [x] `opengraph-image.tsx` — root + `/read/[slug]` + `/series/[slug]` + `/series/[slug]/[chapter]` via `next/og`.
-- [ ] Real cover images — replace `picsum.photos` URLs in `mock-content.ts` (or in DB rows) with real photos uploaded to Supabase Storage.
+- [~] Real cover images — `mock-content.ts` picsum URLs replaced with gradient SVG data URIs via `gradientCover(from, to, deg)` helper so the local fallback isn't random stock. Real photos still need uploading via `/studio/works/[id]` → `CoverUploader` (manual asset work).
 - [x] **Editable about + portrait upload.** Migration `0005_settings_about.sql` adds `author_name`, `author_handle`, `author_tagline`, `author_short_bio`, `author_bio`, `author_bio_long`, `author_location` to `settings`. `/studio/settings` gained an "About the author" section with drag-drop portrait upload (`ImageUploader` writes to `covers/portrait/`). `/about` and `/` now read from `getSiteSettings()` with the static `AUTHOR` constant as fallback. **User must run** the migration before edits stick.
 - [x] Instagram embed — TipTap `InstagramNode` (`/p`, `/reel`, `/tv`) + toolbar button. Renders `<div class="instagram-embed"><iframe src=".../embed"/></div>` so no companion JS needed.
-- [ ] Favicon: regenerate `public/favicon.svg` with a Highcrest "m" rendered to inline `<path>` so the favicon matches the wordmark exactly (use the Highcrest font in Figma → export the "m" as SVG path).
+- [x] Favicon: `public/favicon.svg` now renders the Highcrest "m" as inline `<path>` (glyph extracted from `src/assets/fonts/Highcrest.ttf` via fontTools `SVGPathPen`, flipped onto SVG y-axis with `scale(0.03 -0.03)`).
 - [x] Studio 404 — `/studio/(protected)/not-found.tsx` keeps the chrome.
 - [x] **More flexible "kind of work" picker.** Took the **light** path: `0004_extend_work_kind.sql` adds `article`, `story`, `note`; picker now shows six cards (poem / essay / one-shot / article / story / note); `KindChip` labels updated. **User must run** the migration before the new picker entries will save. Series stays separate (created from `/studio/series/new`).
 
