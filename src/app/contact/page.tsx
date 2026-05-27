@@ -57,7 +57,7 @@ export default async function ContactPage() {
       label: "Medium",
       value: display || "medium",
       href: settings.mediumUrl,
-      hint: "longer dispatches"
+      hint: "longer letters"
     });
   }
 

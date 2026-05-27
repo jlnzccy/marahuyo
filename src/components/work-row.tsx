@@ -26,13 +26,13 @@ export function WorkRow({ work }: { work: AnyWork }) {
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-8">
         {/* Thumb */}
         {work.coverImage && (
-          <div className="md:w-44 md:shrink-0">
+          <div className="md:w-72 md:shrink-0">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-surface md:aspect-[4/3]">
               <Image
                 src={work.coverImage}
                 alt=""
                 fill
-                sizes="(min-width: 768px) 176px, 100vw"
+                sizes="(min-width: 768px) 288px, 100vw"
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
               />
             </div>
