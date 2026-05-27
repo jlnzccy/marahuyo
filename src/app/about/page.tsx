@@ -31,15 +31,15 @@ export default async function AboutPage() {
             )}
           </FadeUp>
 
-          <div className="my-12 grid items-start gap-12 md:grid-cols-[1fr_1.4fr] md:gap-16">
+          <div className="my-12 grid items-start gap-12 md:grid-cols-[1.1fr_1fr] md:gap-16">
             {/* Portrait */}
             <FadeUp delay={0.1}>
-              <div className="relative mx-auto aspect-[4/5] w-full max-w-sm overflow-hidden rounded-2xl border border-border/60 bg-surface">
+              <div className="relative mx-auto aspect-[4/5] w-full overflow-hidden rounded-2xl border border-border/60 bg-surface">
                 <Image
                   src={author.portraitUrl}
                   alt={`Portrait of ${author.name}`}
                   fill
-                  sizes="(min-width: 768px) 480px, 100vw"
+                  sizes="(min-width: 768px) 640px, 100vw"
                   className="object-cover"
                   priority
                 />
