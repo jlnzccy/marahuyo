@@ -8,8 +8,8 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { FeaturedCard } from "@/components/featured-card";
 import { WorkRow, workHref } from "@/components/work-row";
 import { FadeUp } from "@/components/motion";
-import { AUTHOR } from "@/lib/mock-content";
 import { getFeaturedWork, getRecentDispatches } from "@/lib/works";
+import { getSiteSettings } from "@/lib/settings";
 
 export default async function HomePage() {
   const featured = await getFeaturedWork();
@@ -17,6 +17,8 @@ export default async function HomePage() {
 
   const recentRaw = await getRecentDispatches(5);
   const recent = recentRaw.filter((w) => w.id !== featured?.id).slice(0, 4);
+
+  const { author } = await getSiteSettings();
 
   return (
     <>
@@ -40,7 +42,7 @@ export default async function HomePage() {
                 to be enchanted —
               </p>
               <p className="mt-6 max-w-prose font-serif text-reading text-muted text-pretty">
-                {AUTHOR.bio}
+                {author.bio}
               </p>
             </FadeUp>
 
@@ -89,8 +91,8 @@ export default async function HomePage() {
             <div className="grid items-center gap-10 md:grid-cols-[1fr_1.1fr] md:gap-16">
               <div className="relative mx-auto aspect-[4/5] w-full max-w-sm overflow-hidden rounded-2xl border border-border/60 bg-surface">
                 <Image
-                  src={AUTHOR.portraitUrl}
-                  alt={`Portrait of ${AUTHOR.name}`}
+                  src={author.portraitUrl}
+                  alt={`Portrait of ${author.name}`}
                   fill
                   sizes="(min-width: 768px) 480px, 100vw"
                   className="object-cover"
@@ -100,13 +102,13 @@ export default async function HomePage() {
                 <p className="meta mb-4">about the author</p>
                 <h2 className="font-serif text-4xl font-bold leading-tight text-balance md:text-5xl">
                   Hey — it&rsquo;s{" "}
-                  <span className="font-italic italic font-normal">{AUTHOR.name}</span>.
+                  <span className="font-italic italic font-normal">{author.name}</span>.
                 </h2>
                 <p className="mt-4 font-italic italic text-xl text-muted md:text-2xl">
-                  {AUTHOR.subtitle}
+                  {author.subtitle}
                 </p>
                 <p className="mt-6 max-w-prose font-serif text-reading-sm text-muted text-pretty">
-                  {AUTHOR.shortBio}
+                  {author.shortBio}
                 </p>
                 <Link
                   href="/about"

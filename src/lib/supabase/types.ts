@@ -135,6 +135,13 @@ export interface SettingsRow {
   contact_email: string | null;
   portrait_url: string | null;
   author_subtitle: string | null;
+  author_name: string | null;
+  author_handle: string | null;
+  author_tagline: string | null;
+  author_short_bio: string | null;
+  author_bio: string | null;
+  author_bio_long: string | null;
+  author_location: string | null;
   updated_at: string;
 }
 
@@ -147,6 +154,13 @@ export interface SettingsUpdate {
   contact_email?: string | null;
   portrait_url?: string | null;
   author_subtitle?: string | null;
+  author_name?: string | null;
+  author_handle?: string | null;
+  author_tagline?: string | null;
+  author_short_bio?: string | null;
+  author_bio?: string | null;
+  author_bio_long?: string | null;
+  author_location?: string | null;
   updated_at?: string;
 }
 

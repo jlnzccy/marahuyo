@@ -4,13 +4,15 @@ import { SiteFooter } from "@/components/site-footer";
 import { ReaderContainer } from "@/components/reader-container";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { FadeUp } from "@/components/motion";
-import { AUTHOR } from "@/lib/mock-content";
+import { getSiteSettings } from "@/lib/settings";
 
 export const metadata = {
   title: "About"
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const { author } = await getSiteSettings();
+
   return (
     <>
       <SiteHeader />
@@ -20,10 +22,10 @@ export default function AboutPage() {
             <p className="meta mb-6">a preface</p>
             <h1 className="font-serif text-4xl font-bold leading-tight text-balance md:text-6xl">
               Hey! It&rsquo;s{" "}
-              <span className="font-italic italic font-normal">{AUTHOR.name}</span>,
+              <span className="font-italic italic font-normal">{author.name}</span>,
             </h1>
             <p className="mt-4 font-italic italic text-2xl text-muted md:text-3xl">
-              {AUTHOR.subtitle}
+              {author.subtitle}
             </p>
           </FadeUp>
 
@@ -32,8 +34,8 @@ export default function AboutPage() {
             <FadeUp delay={0.1}>
               <div className="relative mx-auto aspect-[4/5] w-full max-w-sm overflow-hidden rounded-2xl border border-border/60 bg-surface">
                 <Image
-                  src={AUTHOR.portraitUrl}
-                  alt={`Portrait of ${AUTHOR.name}`}
+                  src={author.portraitUrl}
+                  alt={`Portrait of ${author.name}`}
                   fill
                   sizes="(min-width: 768px) 480px, 100vw"
                   className="object-cover"
@@ -41,7 +43,7 @@ export default function AboutPage() {
                 />
               </div>
               <p className="meta mt-4 text-center md:text-left">
-                {AUTHOR.location}
+                {author.location}
               </p>
             </FadeUp>
 
@@ -49,7 +51,7 @@ export default function AboutPage() {
             <FadeUp delay={0.2}>
               <article
                 className="reader-prose"
-                dangerouslySetInnerHTML={{ __html: AUTHOR.bioLong }}
+                dangerouslySetInnerHTML={{ __html: author.bioLong }}
               />
             </FadeUp>
           </div>
@@ -66,7 +68,7 @@ export default function AboutPage() {
                 &ldquo;If you are reading this, the work has already done what it set out to do.&rdquo;
               </blockquote>
               <p className="font-italic italic">
-                &mdash; with warmth, from {AUTHOR.location}.
+                &mdash; with warmth, from {author.location}.
               </p>
             </article>
           </FadeUp>

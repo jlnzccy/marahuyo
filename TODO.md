@@ -97,6 +97,17 @@ All actions are in `src/app/studio/(protected)/_actions/works.ts`. Each re-check
 
 ---
 
+## Phase 1.7 — Studio quality-of-life (follow-ups from first real use)
+
+Things noticed once the CMS was actually used in production.
+
+- [ ] **Universal embed picker.** Replace the Instagram-only TipTap node with a generic `EmbedNode` that supports YouTube, Twitter/X, Spotify, Vimeo, TikTok, Bandcamp, and Instagram. One toolbar button opens an inline picker (provider + URL) instead of one button per platform. Probably: a `provider` attribute on the node, a per-provider URL → embed-src adapter, shared iframe wrapper, per-provider aspect ratio in CSS.
+- [ ] **Inline prompts everywhere.** Replace `window.prompt` / `window.alert` / `window.confirm` in the editor toolbar (link, image URL, Instagram URL, broken-URL warning) with site-themed inline UI. Reuse `ConfirmDialog` as the base; add a sibling `PromptDialog` and `AlertDialog`. Goal: no browser-native modals reach the user inside `/studio`.
+- [ ] **Refresh `/studio` overview.** The "Next session — The CMS is sketched, not yet wired" card is stale (CMS is now wired). Replace with something live: recent activity (last 5 edited rows), draft count, or a quiet "today" panel. Or delete the card and keep the four quick-action tiles.
+- [x] **Home button in the public nav.** Added `Home` entry to `src/components/site-header.tsx` `NAV` array, sits before Works / About / Contact.
+
+---
+
 ## Phase 3 — Polish, growth-ish features (~half session)
 
 Quiet additions that make the site feel finished.
@@ -106,7 +117,7 @@ Quiet additions that make the site feel finished.
 - [x] `app/feed.xml/route.ts` — RSS for recent standalone dispatches (1h cache).
 - [x] `opengraph-image.tsx` — root + `/read/[slug]` + `/series/[slug]` + `/series/[slug]/[chapter]` via `next/og`.
 - [ ] Real cover images — replace `picsum.photos` URLs in `mock-content.ts` (or in DB rows) with real photos uploaded to Supabase Storage.
-- [ ] Replace `AUTHOR.portraitUrl` with a real photo of yourself.
+- [x] **Editable about + portrait upload.** Migration `0005_settings_about.sql` adds `author_name`, `author_handle`, `author_tagline`, `author_short_bio`, `author_bio`, `author_bio_long`, `author_location` to `settings`. `/studio/settings` gained an "About the author" section with drag-drop portrait upload (`ImageUploader` writes to `covers/portrait/`). `/about` and `/` now read from `getSiteSettings()` with the static `AUTHOR` constant as fallback. **User must run** the migration before edits stick.
 - [x] Instagram embed — TipTap `InstagramNode` (`/p`, `/reel`, `/tv`) + toolbar button. Renders `<div class="instagram-embed"><iframe src=".../embed"/></div>` so no companion JS needed.
 - [ ] Favicon: regenerate `public/favicon.svg` with a Highcrest "m" rendered to inline `<path>` so the favicon matches the wordmark exactly (use the Highcrest font in Figma → export the "m" as SVG path).
 - [x] Studio 404 — `/studio/(protected)/not-found.tsx` keeps the chrome.

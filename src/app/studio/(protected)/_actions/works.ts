@@ -471,6 +471,68 @@ export async function uploadCover(formData: FormData): Promise<UploadCoverResult
   return { ok: true, url: publicUrl };
 }
 
+/**
+ * Generic image upload. Same validation as cover upload but writes to the
+ * caller-supplied path prefix and returns just the public URL — no DB write.
+ * Use this for any non-cover-row image (portrait, OG art, future inline media).
+ */
+export type UploadImageResult = { ok: true; url: string } | { ok: false; error: string };
+
+const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const IMAGE_ALLOWED_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+  "image/gif"
+]);
+
+export async function uploadStudioImage(formData: FormData): Promise<UploadImageResult> {
+  await assertOwner();
+
+  const prefix = String(formData.get("prefix") ?? "").replace(/^\/+|\/+$/g, "");
+  const file = formData.get("file");
+
+  if (!prefix || prefix.includes("..")) {
+    return { ok: false, error: "Invalid upload prefix." };
+  }
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "No file received." };
+  }
+  if (!IMAGE_ALLOWED_MIME.has(file.type)) {
+    return {
+      ok: false,
+      error: `Unsupported file type (${file.type || "unknown"}). Use JPEG, PNG, WebP, AVIF, or GIF.`
+    };
+  }
+  if (file.size > IMAGE_MAX_BYTES) {
+    return {
+      ok: false,
+      error: `File too large (${(file.size / (1024 * 1024)).toFixed(2)} MB). Max is 5 MB.`
+    };
+  }
+
+  const supabase = getAdminSupabase();
+  const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const base = slugify(file.name.replace(/\.[^.]+$/, "")) || "image";
+  const objectPath = `${prefix}/${Date.now()}-${base}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("covers")
+    .upload(objectPath, file, {
+      contentType: file.type,
+      upsert: false,
+      cacheControl: "31536000"
+    });
+
+  if (uploadError) {
+    return { ok: false, error: `Upload failed: ${uploadError.message}` };
+  }
+
+  const { data: publicData } = supabase.storage.from("covers").getPublicUrl(objectPath);
+  return { ok: true, url: publicData.publicUrl };
+}
+
 export async function reorderChapters(seriesId: string, orderedIds: string[]) {
   await assertOwner();
   const supabase = getAdminSupabase();

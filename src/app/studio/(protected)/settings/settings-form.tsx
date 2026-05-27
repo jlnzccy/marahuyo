@@ -6,6 +6,7 @@ import {
   SaveIndicator,
   type SaveStatus
 } from "@/app/studio/(protected)/_components/save-indicator";
+import { ImageUploader } from "@/app/studio/(protected)/_components/image-uploader";
 
 export type InitialSettings = {
   defaultTheme: string;
@@ -16,6 +17,13 @@ export type InitialSettings = {
   contactEmail: string;
   portraitUrl: string;
   authorSubtitle: string;
+  authorName: string;
+  authorHandle: string;
+  authorTagline: string;
+  authorShortBio: string;
+  authorBio: string;
+  authorBioLong: string;
+  authorLocation: string;
 };
 
 const SAVE_DEBOUNCE_MS = 1200;
@@ -30,6 +38,13 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
   const [contactEmail, setContactEmail] = useState(initial.contactEmail);
   const [portraitUrl, setPortraitUrl] = useState(initial.portraitUrl);
   const [authorSubtitle, setAuthorSubtitle] = useState(initial.authorSubtitle);
+  const [authorName, setAuthorName] = useState(initial.authorName);
+  const [authorHandle, setAuthorHandle] = useState(initial.authorHandle);
+  const [authorTagline, setAuthorTagline] = useState(initial.authorTagline);
+  const [authorShortBio, setAuthorShortBio] = useState(initial.authorShortBio);
+  const [authorBio, setAuthorBio] = useState(initial.authorBio);
+  const [authorBioLong, setAuthorBioLong] = useState(initial.authorBioLong);
+  const [authorLocation, setAuthorLocation] = useState(initial.authorLocation);
 
   const [saveState, setSaveState] = useState<SaveStatus>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
@@ -50,7 +65,14 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
         githubUrl: githubUrl || null,
         contactEmail: contactEmail || null,
         portraitUrl: portraitUrl || null,
-        authorSubtitle: authorSubtitle || null
+        authorSubtitle: authorSubtitle || null,
+        authorName: authorName || null,
+        authorHandle: authorHandle || null,
+        authorTagline: authorTagline || null,
+        authorShortBio: authorShortBio || null,
+        authorBio: authorBio || null,
+        authorBioLong: authorBioLong || null,
+        authorLocation: authorLocation || null
       });
       setLastSavedAt(Date.now());
       setSaveState("saved");
@@ -66,7 +88,14 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
     githubUrl,
     contactEmail,
     portraitUrl,
-    authorSubtitle
+    authorSubtitle,
+    authorName,
+    authorHandle,
+    authorTagline,
+    authorShortBio,
+    authorBio,
+    authorBioLong,
+    authorLocation
   ]);
 
   useEffect(() => {
@@ -98,7 +127,7 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
             Site settings
           </h1>
           <p className="mt-2 font-italic italic text-base text-muted">
-            theme, socials, portrait. quiet defaults for the public surface.
+            theme, the about page, socials. quiet defaults for the public surface.
           </p>
         </div>
         <SaveIndicator
@@ -108,90 +137,158 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
         />
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <section className="space-y-4 rounded-2xl border border-border/60 bg-surface/40 p-6">
-          <h2 className="font-serif text-xl font-bold">Reading</h2>
-          <label className="block">
-            <span className="meta">default theme</span>
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              {THEMES.map((t) => (
-                <label
-                  key={t}
-                  className="cursor-pointer rounded-md border border-border/60 bg-canvas p-3 text-center has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-canvas"
-                >
-                  <input
-                    type="radio"
-                    name="default_theme"
-                    value={t}
-                    checked={defaultTheme === t}
-                    onChange={() => setDefaultTheme(t)}
-                    className="sr-only"
-                  />
-                  <span className="font-serif text-sm capitalize">{t}</span>
-                </label>
-              ))}
-            </div>
-          </label>
-        </section>
+      <section className="space-y-4 rounded-2xl border border-border/60 bg-surface/40 p-6">
+        <h2 className="font-serif text-xl font-bold">Reading</h2>
+        <label className="block">
+          <span className="meta">default theme</span>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {THEMES.map((t) => (
+              <label
+                key={t}
+                className="cursor-pointer rounded-md border border-border/60 bg-canvas p-3 text-center has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-canvas"
+              >
+                <input
+                  type="radio"
+                  name="default_theme"
+                  value={t}
+                  checked={defaultTheme === t}
+                  onChange={() => setDefaultTheme(t)}
+                  className="sr-only"
+                />
+                <span className="font-serif text-sm capitalize">{t}</span>
+              </label>
+            ))}
+          </div>
+        </label>
+      </section>
 
-        <section className="space-y-4 rounded-2xl border border-border/60 bg-surface/40 p-6">
-          <h2 className="font-serif text-xl font-bold">About</h2>
-          <Field
-            label="author subtitle"
-            value={authorSubtitle}
-            onChange={setAuthorSubtitle}
-            placeholder="dating cactus sa paso."
-          />
-          <Field
-            label="portrait url"
-            value={portraitUrl}
-            onChange={setPortraitUrl}
-            type="url"
-            placeholder="https://… (or a /portrait.jpg path)"
-          />
-        </section>
+      {/* ---------- About ---------- */}
+      <section className="space-y-5 rounded-2xl border border-border/60 bg-surface/40 p-6">
+        <div>
+          <h2 className="font-serif text-xl font-bold">About the author</h2>
+          <p className="mt-1 font-italic italic text-sm text-muted">
+            powers the homepage hero and the /about page. plain text fields are
+            single-line; the long bio accepts HTML (e.g. <code>&lt;p&gt;</code>, <code>&lt;em&gt;</code>).
+          </p>
+        </div>
 
-        <section className="space-y-4 rounded-2xl border border-border/60 bg-surface/40 p-6 lg:col-span-2">
-          <h2 className="font-serif text-xl font-bold">Links</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label="instagram"
-              value={instagramUrl}
-              onChange={setInstagramUrl}
-              type="url"
-              placeholder="https://instagram.com/…"
-            />
-            <Field
-              label="twitter / x"
-              value={twitterUrl}
-              onChange={setTwitterUrl}
-              type="url"
-              placeholder="https://x.com/…"
-            />
-            <Field
-              label="substack"
-              value={substackUrl}
-              onChange={setSubstackUrl}
-              type="url"
-              placeholder="https://…substack.com"
-            />
-            <Field
-              label="github"
-              value={githubUrl}
-              onChange={setGithubUrl}
-              type="url"
-              placeholder="https://github.com/…"
-            />
-            <Field
-              label="contact email"
-              value={contactEmail}
-              onChange={setContactEmail}
-              type="email"
-              placeholder="hello@…"
+        <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+          <div>
+            <ImageUploader
+              prefix="portrait"
+              label="portrait"
+              value={portraitUrl}
+              onChange={setPortraitUrl}
+              previewAspect="aspect-[4/5]"
             />
           </div>
-        </section>
-      </div>
+
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="name" value={authorName} onChange={setAuthorName} placeholder="Jae Cua" />
+              <Field
+                label="handle"
+                value={authorHandle}
+                onChange={setAuthorHandle}
+                placeholder="marahuyo"
+              />
+            </div>
+            <Field
+              label="tagline"
+              value={authorTagline}
+              onChange={setAuthorTagline}
+              placeholder="to be enchanted."
+            />
+            <Field
+              label="subtitle (used on home + about)"
+              value={authorSubtitle}
+              onChange={setAuthorSubtitle}
+              placeholder="dating cactus sa paso."
+            />
+            <Field
+              label="location"
+              value={authorLocation}
+              onChange={setAuthorLocation}
+              placeholder="Quezon City, Philippines"
+            />
+
+            <label className="block">
+              <span className="meta">short bio (1–2 lines shown on home)</span>
+              <textarea
+                value={authorShortBio}
+                onChange={(e) => setAuthorShortBio(e.target.value)}
+                rows={2}
+                placeholder="Filipino writer. Notes from a quiet kid…"
+                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-2 font-serif text-sm text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
+              />
+            </label>
+
+            <label className="block">
+              <span className="meta">bio (one paragraph)</span>
+              <textarea
+                value={authorBio}
+                onChange={(e) => setAuthorBio(e.target.value)}
+                rows={4}
+                placeholder="I read, write, and come up with some nonsense things…"
+                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-2 font-serif text-sm text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
+              />
+            </label>
+
+            <label className="block">
+              <span className="meta">long bio (HTML — about page main body)</span>
+              <textarea
+                value={authorBioLong}
+                onChange={(e) => setAuthorBioLong(e.target.value)}
+                rows={10}
+                placeholder='<p class="drop-cap">Isang hamak na bata na parating lutang…</p>'
+                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-2 font-mono text-xs text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
+              />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- Links ---------- */}
+      <section className="space-y-4 rounded-2xl border border-border/60 bg-surface/40 p-6">
+        <h2 className="font-serif text-xl font-bold">Links</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="instagram"
+            value={instagramUrl}
+            onChange={setInstagramUrl}
+            type="url"
+            placeholder="https://instagram.com/…"
+          />
+          <Field
+            label="twitter / x"
+            value={twitterUrl}
+            onChange={setTwitterUrl}
+            type="url"
+            placeholder="https://x.com/…"
+          />
+          <Field
+            label="substack"
+            value={substackUrl}
+            onChange={setSubstackUrl}
+            type="url"
+            placeholder="https://…substack.com"
+          />
+          <Field
+            label="github"
+            value={githubUrl}
+            onChange={setGithubUrl}
+            type="url"
+            placeholder="https://github.com/…"
+          />
+          <Field
+            label="contact email"
+            value={contactEmail}
+            onChange={setContactEmail}
+            type="email"
+            placeholder="hello@…"
+          />
+        </div>
+      </section>
     </div>
   );
 }

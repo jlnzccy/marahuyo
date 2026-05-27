@@ -13,7 +13,14 @@ const DEFAULTS: InitialSettings = {
   githubUrl: "",
   contactEmail: "",
   portraitUrl: "",
-  authorSubtitle: ""
+  authorSubtitle: "",
+  authorName: "",
+  authorHandle: "",
+  authorTagline: "",
+  authorShortBio: "",
+  authorBio: "",
+  authorBioLong: "",
+  authorLocation: ""
 };
 
 export default async function StudioSettingsPage() {
@@ -32,7 +39,8 @@ export default async function StudioSettingsPage() {
           Couldn&rsquo;t load settings: {error.message}
         </p>
         <p className="mt-2 font-sans text-xs text-red-700/80">
-          Did you apply <code>supabase/migrations/0003_settings.sql</code>?
+          Did you apply <code>supabase/migrations/0003_settings.sql</code> and{" "}
+          <code>0005_settings_about.sql</code>?
         </p>
       </div>
     );
@@ -47,7 +55,14 @@ export default async function StudioSettingsPage() {
         githubUrl: data.github_url ?? "",
         contactEmail: data.contact_email ?? "",
         portraitUrl: data.portrait_url ?? "",
-        authorSubtitle: data.author_subtitle ?? ""
+        authorSubtitle: data.author_subtitle ?? "",
+        authorName: data.author_name ?? "",
+        authorHandle: data.author_handle ?? "",
+        authorTagline: data.author_tagline ?? "",
+        authorShortBio: data.author_short_bio ?? "",
+        authorBio: data.author_bio ?? "",
+        authorBioLong: data.author_bio_long ?? "",
+        authorLocation: data.author_location ?? ""
       }
     : DEFAULTS;
 
