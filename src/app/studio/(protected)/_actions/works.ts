@@ -35,6 +35,26 @@ function revalidateReadingSurfaces(slug?: string | null) {
   if (slug) revalidatePath(`/read/${slug}`);
 }
 
+function revalidateSeriesSurfaces(seriesSlug?: string | null, chapterSlug?: string | null) {
+  revalidatePath("/");
+  revalidatePath("/works");
+  if (seriesSlug) {
+    revalidatePath(`/series/${seriesSlug}`);
+    if (chapterSlug) revalidatePath(`/series/${seriesSlug}/${chapterSlug}`);
+  }
+}
+
+async function getSeriesSlug(seriesId: string): Promise<string | null> {
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("works")
+    .select("slug")
+    .eq("id", seriesId)
+    .maybeSingle()
+    .returns<Pick<WorkRow, "slug"> | null>();
+  return data?.slug ?? null;
+}
+
 // =============================================================================
 // Works (standalone + series parents)
 // =============================================================================
@@ -249,6 +269,120 @@ export async function createChapter(seriesId: string, title: string) {
 
   revalidatePath(`/studio/series/${seriesId}`);
   redirect(`/studio/series/${seriesId}/chapters/${data.id}`);
+}
+
+export type UpdateChapterInput = {
+  id: string;
+  title?: string;
+  subtitle?: string | null;
+  body?: string;
+  poetryMode?: boolean;
+  coverImage?: string | null;
+  wordCount?: number;
+  readingMinutes?: number;
+};
+
+export async function updateChapter(input: UpdateChapterInput) {
+  await assertOwner();
+  const supabase = getAdminSupabase();
+
+  const patch: ChapterUpdate = {};
+  if (input.title !== undefined) patch.title = input.title;
+  if (input.subtitle !== undefined) patch.subtitle = input.subtitle;
+  if (input.body !== undefined) patch.body = input.body;
+  if (input.poetryMode !== undefined) patch.poetry_mode = input.poetryMode;
+  if (input.coverImage !== undefined) patch.cover_image = input.coverImage;
+  if (input.wordCount !== undefined) patch.word_count = input.wordCount;
+  if (input.readingMinutes !== undefined) patch.reading_minutes = input.readingMinutes;
+
+  const { data: rawData, error } = await supabase
+    .from("chapters")
+    .update(patch as never)
+    .eq("id", input.id)
+    .select("slug, status, series_id")
+    .single();
+  const data = rawData as Pick<ChapterRow, "slug" | "status" | "series_id"> | null;
+
+  if (error) throw new Error(`Failed to update chapter: ${error.message}`);
+
+  if (data?.status === "published") {
+    const seriesSlug = await getSeriesSlug(data.series_id);
+    revalidateSeriesSurfaces(seriesSlug, data.slug);
+  }
+  revalidatePath(`/studio/series/${data?.series_id ?? ""}/chapters/${input.id}`);
+
+  return { ok: true as const, savedAt: Date.now() };
+}
+
+export async function publishChapter(id: string) {
+  await assertOwner();
+  const supabase = getAdminSupabase();
+
+  const patch: ChapterUpdate = {
+    status: "published",
+    published_at: new Date().toISOString()
+  };
+
+  const { data: rawData, error } = await supabase
+    .from("chapters")
+    .update(patch as never)
+    .eq("id", id)
+    .select("slug, series_id")
+    .single();
+  const data = rawData as Pick<ChapterRow, "slug" | "series_id"> | null;
+
+  if (error) throw new Error(`Failed to publish chapter: ${error.message}`);
+  if (data) {
+    const seriesSlug = await getSeriesSlug(data.series_id);
+    revalidateSeriesSurfaces(seriesSlug, data.slug);
+    revalidatePath(`/studio/series/${data.series_id}`);
+  }
+  return { ok: true as const };
+}
+
+export async function unpublishChapter(id: string) {
+  await assertOwner();
+  const supabase = getAdminSupabase();
+
+  const patch: ChapterUpdate = { status: "draft" };
+
+  const { data: rawData, error } = await supabase
+    .from("chapters")
+    .update(patch as never)
+    .eq("id", id)
+    .select("slug, series_id")
+    .single();
+  const data = rawData as Pick<ChapterRow, "slug" | "series_id"> | null;
+
+  if (error) throw new Error(`Failed to unpublish chapter: ${error.message}`);
+  if (data) {
+    const seriesSlug = await getSeriesSlug(data.series_id);
+    revalidateSeriesSurfaces(seriesSlug, data.slug);
+    revalidatePath(`/studio/series/${data.series_id}`);
+  }
+  return { ok: true as const };
+}
+
+export async function deleteChapter(id: string) {
+  await assertOwner();
+  const supabase = getAdminSupabase();
+
+  const { data: rawData, error } = await supabase
+    .from("chapters")
+    .delete()
+    .eq("id", id)
+    .select("slug, series_id")
+    .single();
+  const data = rawData as Pick<ChapterRow, "slug" | "series_id"> | null;
+
+  if (error) throw new Error(`Failed to delete chapter: ${error.message}`);
+  if (data) {
+    const seriesSlug = await getSeriesSlug(data.series_id);
+    revalidateSeriesSurfaces(seriesSlug, data.slug);
+    revalidatePath(`/studio/series/${data.series_id}`);
+    redirect(`/studio/series/${data.series_id}`);
+  }
+  return { ok: true as const };
 }
 
 // =============================================================================

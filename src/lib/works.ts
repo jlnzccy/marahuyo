@@ -25,7 +25,7 @@ function mapStandalone(row: WorkRow): StandaloneWork {
     slug: row.slug,
     title: row.title,
     subtitle: row.subtitle ?? undefined,
-    kind: row.kind as "poem" | "essay" | "oneshot",
+    kind: row.kind as "poem" | "essay" | "oneshot" | "article" | "story" | "note",
     status: row.status,
     publishedAt: row.published_at ?? undefined,
     tags: row.tags,
@@ -179,6 +179,50 @@ export async function getPublishedSeriesSlugs(): Promise<string[]> {
     .eq("kind", "series");
   if (error) throw new Error(`getPublishedSeriesSlugs: ${error.message}`);
   return ((data ?? []) as Pick<WorkRow, "slug">[]).map((r) => r.slug);
+}
+
+export async function getPublishedWorkUpdates(): Promise<
+  { slug: string; kind: WorkRow["kind"]; updatedAt: string }[]
+> {
+  const sb = getPublicSupabase();
+  const { data, error } = await sb
+    .from("works")
+    .select("slug, kind, updated_at")
+    .eq("status", "published");
+  if (error) throw new Error(`getPublishedWorkUpdates: ${error.message}`);
+  return ((data ?? []) as Pick<WorkRow, "slug" | "kind" | "updated_at">[]).map((r) => ({
+    slug: r.slug,
+    kind: r.kind,
+    updatedAt: r.updated_at
+  }));
+}
+
+export async function getPublishedChapterUpdates(): Promise<
+  { seriesSlug: string; chapterSlug: string; updatedAt: string }[]
+> {
+  const sb = getPublicSupabase();
+  const { data, error } = await sb
+    .from("works")
+    .select("slug, chapters(slug, status, updated_at)")
+    .eq("status", "published")
+    .eq("kind", "series");
+  if (error) throw new Error(`getPublishedChapterUpdates: ${error.message}`);
+  const out: { seriesSlug: string; chapterSlug: string; updatedAt: string }[] = [];
+  for (const row of (data ?? []) as {
+    slug: string;
+    chapters: { slug: string; status: string; updated_at: string }[] | null;
+  }[]) {
+    for (const ch of row.chapters ?? []) {
+      if (ch.status === "published") {
+        out.push({
+          seriesSlug: row.slug,
+          chapterSlug: ch.slug,
+          updatedAt: ch.updated_at
+        });
+      }
+    }
+  }
+  return out;
 }
 
 export async function getPublishedChapterParams(): Promise<

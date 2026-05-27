@@ -1,17 +1,23 @@
 import { FilePlus } from "lucide-react";
 import { createWork } from "@/app/studio/(protected)/_actions/works";
+import type { WorkKind } from "@/types/content";
 
 export const metadata = { title: "New work · Studio" };
 
-const KINDS: { value: "poem" | "essay" | "oneshot"; label: string; hint: string }[] = [
+type Kind = Exclude<WorkKind, "series">;
+
+const KINDS: { value: Kind; label: string; hint: string }[] = [
   { value: "poem", label: "Poem", hint: "preserves indents, soft returns, and raw whitespace." },
   { value: "essay", label: "Essay", hint: "long-form prose with headings and pull quotes." },
-  { value: "oneshot", label: "One-shot", hint: "short notes, fragments, dispatches at 3 a.m." }
+  { value: "oneshot", label: "One-shot", hint: "short notes, fragments, dispatches at 3 a.m." },
+  { value: "article", label: "Article", hint: "blog-style piece — a reported note or argument." },
+  { value: "story", label: "Story", hint: "short fiction, an arc that ends in one sitting." },
+  { value: "note", label: "Note", hint: "a quick thought — barely a paragraph." }
 ];
 
 async function create(formData: FormData) {
   "use server";
-  const kind = formData.get("kind") as "poem" | "essay" | "oneshot";
+  const kind = formData.get("kind") as Kind;
   const title = (formData.get("title") as string) ?? "Untitled";
   await createWork({ kind, title });
 }
@@ -32,7 +38,7 @@ export default function NewWorkPage() {
       <form action={create} className="space-y-8 rounded-2xl border border-border/60 bg-surface/40 p-6">
         <fieldset className="space-y-3">
           <legend className="meta mb-2">what kind of work</legend>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {KINDS.map((k, i) => (
               <label
                 key={k.value}

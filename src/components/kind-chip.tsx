@@ -5,7 +5,10 @@ const LABELS: Record<WorkKind, string> = {
   poem: "Poem",
   essay: "Essay",
   oneshot: "One-shot",
-  series: "Series"
+  series: "Series",
+  article: "Article",
+  story: "Story",
+  note: "Note"
 };
 
 export function KindChip({ kind, className }: { kind: WorkKind; className?: string }) {

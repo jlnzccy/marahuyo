@@ -4,32 +4,31 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import Link from "next/link";
 import { Eye, Trash2, Send, Undo2, ChevronLeft } from "lucide-react";
 import {
-  updateWork,
-  publishWork,
-  unpublishWork,
-  deleteWork
+  updateChapter,
+  publishChapter,
+  unpublishChapter,
+  deleteChapter
 } from "@/app/studio/(protected)/_actions/works";
 import { Editor, type EditorPayload } from "@/app/studio/(protected)/_components/editor";
-import { CoverUploader } from "@/app/studio/(protected)/_components/cover-uploader";
 import { ConfirmDialog } from "@/app/studio/(protected)/_components/confirm-dialog";
 import {
   SaveIndicator,
   type SaveStatus
 } from "@/app/studio/(protected)/_components/save-indicator";
 import { cn } from "@/lib/cn";
-import type { WorkKind, WorkStatus } from "@/types/content";
+import type { WorkStatus } from "@/types/content";
 
-export type InitialWork = {
+export type InitialChapter = {
   id: string;
   slug: string;
+  seriesId: string;
+  seriesSlug: string;
+  seriesTitle: string;
+  number: number;
   title: string;
   subtitle: string;
-  kind: WorkKind;
   status: WorkStatus;
-  excerpt: string;
   body: string;
-  tags: string[];
-  coverImage: string;
   poetryMode: boolean;
   wordCount: number;
   readingMinutes: number;
@@ -38,19 +37,14 @@ export type InitialWork = {
 
 const SAVE_DEBOUNCE_MS = 1200;
 
-export function WorkEditorForm({ initial }: { initial: InitialWork }) {
-  // ----- Local form state -----
+export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
   const [title, setTitle] = useState(initial.title);
   const [subtitle, setSubtitle] = useState(initial.subtitle);
-  const [excerpt, setExcerpt] = useState(initial.excerpt);
-  const [tagsText, setTagsText] = useState(initial.tags.join(", "));
-  const [coverImage, setCoverImage] = useState(initial.coverImage);
   const [poetryMode, setPoetryMode] = useState(initial.poetryMode);
   const [body, setBody] = useState(initial.body);
   const [wordCount, setWordCount] = useState(initial.wordCount);
   const [readingMinutes, setReadingMinutes] = useState(initial.readingMinutes);
 
-  // ----- Status + control -----
   const [status, setStatus] = useState<WorkStatus>(initial.status);
   const [saveState, setSaveState] = useState<SaveStatus>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
@@ -58,15 +52,11 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
   const [actionPending, startAction] = useTransition();
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-  // ----- Save scheduling -----
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didMount = useRef(false);
   const latestSnapshotRef = useRef({
     title: initial.title,
     subtitle: initial.subtitle,
-    excerpt: initial.excerpt,
-    tags: initial.tags,
-    coverImage: initial.coverImage,
     poetryMode: initial.poetryMode,
     body: initial.body,
     wordCount: initial.wordCount,
@@ -78,14 +68,11 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
     setSaveState("saving");
     setSaveError(undefined);
     try {
-      await updateWork({
+      await updateChapter({
         id: initial.id,
         title: snap.title,
         subtitle: snap.subtitle || null,
-        excerpt: snap.excerpt,
         body: snap.body,
-        tags: snap.tags,
-        coverImage: snap.coverImage || null,
         poetryMode: snap.poetryMode,
         wordCount: snap.wordCount,
         readingMinutes: snap.readingMinutes
@@ -105,40 +92,19 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
     }, SAVE_DEBOUNCE_MS);
   }, [flushSave]);
 
-  // Whenever local state changes, update the snapshot + reschedule a save.
   useEffect(() => {
-    const tags = tagsText
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
     latestSnapshotRef.current = {
       title,
       subtitle,
-      excerpt,
-      tags,
-      coverImage,
       poetryMode,
       body,
       wordCount,
       readingMinutes
     };
-    // Skip the very first render — there are no real changes yet.
     if (didMount.current) scheduleSave();
     else didMount.current = true;
-  }, [
-    title,
-    subtitle,
-    excerpt,
-    tagsText,
-    coverImage,
-    poetryMode,
-    body,
-    wordCount,
-    readingMinutes,
-    scheduleSave
-  ]);
+  }, [title, subtitle, poetryMode, body, wordCount, readingMinutes, scheduleSave]);
 
-  // Flush pending saves on unmount so the writer never loses an in-flight change.
   useEffect(() => {
     return () => {
       if (saveTimer.current) {
@@ -148,29 +114,26 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
     };
   }, [flushSave]);
 
-  // ----- Editor change handler -----
   const handleEditorChange = useCallback((payload: EditorPayload) => {
     setBody(payload.html);
     setWordCount(payload.words);
     setReadingMinutes(payload.readingMinutes);
   }, []);
 
-  // ----- Publish / unpublish / delete -----
   const isPublished = status === "published";
 
   const togglePublish = useCallback(() => {
     startAction(async () => {
       try {
-        // Flush any pending edits first so the published version is current.
         if (saveTimer.current) {
           clearTimeout(saveTimer.current);
           await flushSave();
         }
         if (isPublished) {
-          await unpublishWork(initial.id);
+          await unpublishChapter(initial.id);
           setStatus("draft");
         } else {
-          await publishWork(initial.id);
+          await publishChapter(initial.id);
           setStatus("published");
         }
       } catch (err) {
@@ -180,31 +143,31 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
     });
   }, [flushSave, initial.id, isPublished]);
 
-  const handleDelete = useCallback(() => {
-    setConfirmDeleteOpen(true);
-  }, []);
-
   const confirmDelete = useCallback(() => {
     startAction(async () => {
-      await deleteWork(initial.id);
+      await deleteChapter(initial.id);
     });
   }, [initial.id]);
 
-  const publicHref = useMemo(() => `/read/${initial.slug}`, [initial.slug]);
+  const publicHref = useMemo(
+    () => `/series/${initial.seriesSlug}/${initial.slug}`,
+    [initial.seriesSlug, initial.slug]
+  );
 
   return (
     <div className="space-y-6">
-      {/* ---------- Top bar ---------- */}
       <header className="sticky top-16 z-30 -mx-5 border-b border-border/60 bg-canvas/85 px-5 py-3 backdrop-blur md:-mx-8 md:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link
-              href="/studio/works"
+              href={`/studio/series/${initial.seriesId}`}
               className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-surface/60 px-2 py-1 font-sans text-xs text-muted hover:bg-surface hover:text-ink"
             >
-              <ChevronLeft className="h-3 w-3" /> back
+              <ChevronLeft className="h-3 w-3" /> {initial.seriesTitle}
             </Link>
-            <span className="meta">{initial.kind}</span>
+            <span className="meta">
+              ch · {String(initial.number).padStart(2, "0")}
+            </span>
             <span
               className={cn(
                 "rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-meta",
@@ -256,7 +219,7 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
             </button>
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setConfirmDeleteOpen(true)}
               disabled={actionPending}
               className="inline-flex items-center gap-1.5 rounded-md border border-red-400/40 bg-red-500/5 px-2.5 py-1.5 font-sans text-xs text-red-600 transition-colors hover:bg-red-500/10"
             >
@@ -266,22 +229,20 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
         </div>
       </header>
 
-      {/* ---------- Body ---------- */}
       <div className="grid gap-10 lg:grid-cols-[1fr_300px]">
-        {/* Editor column */}
         <div className="space-y-6">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled"
+            placeholder="Untitled chapter"
             className="w-full bg-transparent font-serif text-4xl font-bold leading-tight tracking-tight text-ink placeholder:text-whisper focus:outline-none md:text-5xl"
           />
           <input
             type="text"
             value={subtitle}
             onChange={(e) => setSubtitle(e.target.value)}
-            placeholder="optional subtitle — a quieter second line"
+            placeholder="optional subtitle — in which…"
             className="w-full bg-transparent font-italic italic text-xl text-muted placeholder:text-whisper focus:outline-none md:text-2xl"
           />
 
@@ -290,7 +251,6 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
           <Editor initialContent={initial.body} onChange={handleEditorChange} />
         </div>
 
-        {/* Meta sidebar */}
         <aside className="space-y-6">
           <section className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
             <p className="meta">stats</p>
@@ -307,35 +267,7 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
           </section>
 
           <section className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-            <label className="block">
-              <span className="meta">excerpt</span>
-              <textarea
-                value={excerpt}
-                onChange={(e) => setExcerpt(e.target.value)}
-                rows={4}
-                placeholder="a short line shown on cards and the archive"
-                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-2 font-serif text-sm text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
-              />
-            </label>
-
-            <label className="block">
-              <span className="meta">tags (comma-separated)</span>
-              <input
-                type="text"
-                value={tagsText}
-                onChange={(e) => setTagsText(e.target.value)}
-                placeholder="essay, memory, manila"
-                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-1.5 font-mono text-xs text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
-              />
-            </label>
-
-            <CoverUploader
-              workId={initial.id}
-              value={coverImage}
-              onChange={setCoverImage}
-            />
-
-            <label className="flex items-center gap-2 pt-2">
+            <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={poetryMode}
@@ -359,9 +291,9 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
       <ConfirmDialog
         open={confirmDeleteOpen}
         tone="danger"
-        title="Delete this work?"
-        description="This can’t be undone. Chapters and all attached covers go with it."
-        confirmLabel="Delete forever"
+        title="Delete this chapter?"
+        description="The chapter and all its drafts disappear. The series itself stays."
+        confirmLabel="Delete chapter"
         pending={actionPending}
         onCancel={() => setConfirmDeleteOpen(false)}
         onConfirm={confirmDelete}

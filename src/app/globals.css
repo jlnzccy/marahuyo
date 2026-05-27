@@ -139,6 +139,23 @@
     font-size: 18px;
   }
 
+  /* Instagram embed */
+  .reader-prose .instagram-embed,
+  .instagram-embed {
+    @apply my-10 mx-auto block;
+    max-width: 540px;
+  }
+  .reader-prose .instagram-embed-frame,
+  .instagram-embed-frame {
+    @apply w-full rounded-md border border-border/60 bg-canvas;
+    aspect-ratio: 1 / 1;
+    min-height: 560px;
+  }
+  .reader-prose .instagram-embed-broken,
+  .instagram-embed-broken {
+    @apply rounded-md border border-red-400/40 bg-red-500/5 p-4 text-center font-mono text-xs text-red-700;
+  }
+
   /* Drop cap on first paragraph of a chapter */
   .reader-prose .drop-cap::first-letter {
     @apply font-serif font-bold text-ink;

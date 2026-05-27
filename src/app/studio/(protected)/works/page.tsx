@@ -28,7 +28,7 @@ export default async function StudioWorksList() {
   const { data, error } = await supabase
     .from("works")
     .select("id, slug, title, kind, status, updated_at, word_count")
-    .in("kind", ["poem", "essay", "oneshot"])
+    .in("kind", ["poem", "essay", "oneshot", "article", "story", "note"])
     .order("updated_at", { ascending: false })
     .returns<WorkListRow[]>();
 

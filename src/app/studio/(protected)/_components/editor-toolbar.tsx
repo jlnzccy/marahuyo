@@ -14,7 +14,8 @@ import {
   Link as LinkIcon,
   Undo2,
   Redo2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Instagram
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -70,6 +71,20 @@ export function EditorToolbar({ editor }: Props) {
     const url = window.prompt("Image URL");
     if (!url) return;
     editor.chain().focus().setImage({ src: url }).run();
+  };
+
+  const promptForInstagram = () => {
+    const url = window.prompt(
+      "Instagram post URL",
+      "https://www.instagram.com/p/"
+    );
+    if (!url) return;
+    const ok = editor.chain().focus().setInstagram({ url }).run();
+    if (!ok) {
+      window.alert(
+        "That doesn't look like an Instagram post/reel URL. Expected /p/<id> or /reel/<id>."
+      );
+    }
   };
 
   return (
@@ -138,6 +153,11 @@ export function EditorToolbar({ editor }: Props) {
         onClick={() => editor.chain().focus().toggleNode("poetry", "paragraph").run()}
       />
       <ToolButton label="Image" icon={ImageIcon} onClick={promptForImage} />
+      <ToolButton
+        label="Embed Instagram post"
+        icon={Instagram}
+        onClick={promptForInstagram}
+      />
 
       <Divider />
 

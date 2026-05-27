@@ -8,7 +8,9 @@ import Image from "@tiptap/extension-image";
 import CharacterCount from "@tiptap/extension-character-count";
 import { useEffect, useRef } from "react";
 import { PoetryNode } from "./extensions/poetry-node";
+import { InstagramNode } from "./extensions/instagram-node";
 import { EditorToolbar } from "./editor-toolbar";
+import { EditorBubbleMenu } from "./editor-bubble-menu";
 
 export type EditorPayload = {
   html: string;
@@ -56,7 +58,8 @@ export function Editor({ initialContent, onChange, placeholder }: Props) {
       }),
       Image.configure({ inline: false, allowBase64: false }),
       CharacterCount,
-      PoetryNode
+      PoetryNode,
+      InstagramNode
     ],
     content: initialContent || "",
     editorProps: {
@@ -79,6 +82,7 @@ export function Editor({ initialContent, onChange, placeholder }: Props) {
   return (
     <div className="space-y-4">
       <EditorToolbar editor={editor} />
+      <EditorBubbleMenu editor={editor} />
       <div className="mx-auto max-w-reader">
         <EditorContent editor={editor} />
       </div>

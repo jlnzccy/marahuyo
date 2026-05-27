@@ -1,7 +1,14 @@
 // Hand-written types mirroring the SQL schema in supabase/migrations/0001_init.sql.
 // Replace with `supabase gen types typescript` output once your project is live.
 
-export type WorkKind = "poem" | "essay" | "oneshot" | "series";
+export type WorkKind =
+  | "poem"
+  | "essay"
+  | "oneshot"
+  | "series"
+  | "article"
+  | "story"
+  | "note";
 export type WorkStatusDb = "draft" | "published";
 
 export interface WorkRow {
@@ -118,6 +125,31 @@ export interface ChapterUpdate {
   updated_at?: string;
 }
 
+export interface SettingsRow {
+  id: string;
+  default_theme: string;
+  instagram_url: string | null;
+  twitter_url: string | null;
+  substack_url: string | null;
+  github_url: string | null;
+  contact_email: string | null;
+  portrait_url: string | null;
+  author_subtitle: string | null;
+  updated_at: string;
+}
+
+export interface SettingsUpdate {
+  default_theme?: string;
+  instagram_url?: string | null;
+  twitter_url?: string | null;
+  substack_url?: string | null;
+  github_url?: string | null;
+  contact_email?: string | null;
+  portrait_url?: string | null;
+  author_subtitle?: string | null;
+  updated_at?: string;
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -140,6 +172,12 @@ export type Database = {
             referencedColumns: ["id"];
           }
         ];
+      };
+      settings: {
+        Row: SettingsRow;
+        Insert: SettingsRow;
+        Update: SettingsUpdate;
+        Relationships: [];
       };
     };
     Views: {

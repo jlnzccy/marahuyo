@@ -2,7 +2,7 @@
 
 Organized so you can pick up any phase in a fresh session and know exactly what to do. Items are checkboxes — tick as you finish. Each phase is independent enough to ship on its own.
 
-Last updated: 2026-05-27. Phase 0 complete: studio auth swapped from Supabase magic-link to env-backed username + password with an HMAC-signed cookie. GitHub repo live at `jlnzccy/marahuyo`; Vercel project linked + production env vars set + deployed. Phase 1 partially landed: editor, Poetry node, auto-save, works CRUD are live. Series CMS + image uploads still open.
+Last updated: 2026-05-27. Phase 0 complete. Phase 1 complete: editor + Poetry node + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum all live. Remaining Phase 3 items: real cover/portrait photos, favicon redraw — manual asset work.
 
 ---
 
@@ -32,7 +32,7 @@ Make the writing room usable.
 - [x] Wire StarterKit extensions (h2/h3, lists, blockquote, hr) + Placeholder + Link + Image + CharacterCount.
 - [x] Toolbar with block-level + inline buttons. (No floating bubble menu yet — Phase 1 follow-up.)
 - [x] Style ProseMirror content area to match `.reader-prose` (set as the `attributes.class`).
-- [ ] Add a floating bubble menu for inline formatting (bold / italic / link) — quality-of-life follow-up.
+- [x] Add a floating bubble menu for inline formatting (bold / italic / link). `editor-bubble-menu.tsx`.
 
 ### 1.2 — Poetry node ✅ DONE
 
@@ -61,19 +61,20 @@ All actions are in `src/app/studio/(protected)/_actions/works.ts`. Each re-check
 - [x] `deleteWork(id)` → hard delete (confirmation UI is browser `confirm()` — replace with a nicer modal later).
 - [x] `createChapter(seriesId, title)` → auto-numbers, redirects to the chapter editor.
 - [x] `reorderChapters(seriesId, orderedIds[])` → one UPDATE per row; switch to RPC if chapter counts ever balloon.
-- [ ] `updateChapter` / `publishChapter` / `unpublishChapter` / `deleteChapter` — same shape as `*Work`, blocked on the Series UI below.
+- [x] `updateChapter` / `publishChapter` / `unpublishChapter` / `deleteChapter` — added in `_actions/works.ts`.
 
 ### 1.5 — Studio UI
 
 - [x] `/studio/works` — newest-first list of poems, essays, one-shots. Drafts visually distinguished.
 - [x] `/studio/works/new` — kind picker + title input → creates a draft → redirects to `/studio/works/[id]`.
 - [x] `/studio/works/[id]` — full editor: title, subtitle, body (TipTap), excerpt, tags, cover image URL, poetry-mode flag, publish/unpublish, delete, "view live" link, live word + reading-time stats.
-- [ ] `/studio/series` — list of series (drafts + published) with a "New series" CTA.
-- [ ] `/studio/series/[id]` — series settings + chapter table with the dnd-kit sortable list.
-- [ ] `/studio/series/[id]/chapters/[chapterId]` — chapter editor (reuse the work-editor-form shape).
-- [ ] `/studio/drafts` — single inbox of every `status='draft'` row across works + chapters.
-- [ ] `/studio/settings` — default theme, social links. Probably needs a new `settings` row in Supabase. (No more "owner email" — auth is env-backed.)
-- [ ] Replace the native `window.confirm` delete-flow with an inline modal (`<dialog>` element or a small Framer Motion sheet).
+- [x] `/studio/series` — list of series (drafts + published) with a "New series" CTA.
+- [x] `/studio/series/new` — new-series form.
+- [x] `/studio/series/[id]` — series settings + dnd-kit sortable chapter table.
+- [x] `/studio/series/[id]/chapters/[chapterId]` — chapter editor.
+- [x] `/studio/drafts` — unified inbox.
+- [x] `/studio/settings` — settings singleton row + form. **User must run** `supabase/migrations/0003_settings.sql` before this page loads.
+- [x] Replaced `window.confirm` with `ConfirmDialog` (native `<dialog>` + portal) on work + series + chapter editors.
 
 ### 1.6 — Image uploads ✅ DONE
 
@@ -100,19 +101,16 @@ All actions are in `src/app/studio/(protected)/_actions/works.ts`. Each re-check
 
 Quiet additions that make the site feel finished.
 
-- [ ] `app/sitemap.ts` — generate sitemap from published slugs.
-- [ ] `app/robots.ts` — allow everything except `/studio/*`.
-- [ ] `app/feed.xml/route.ts` — RSS for the recent dispatches.
-- [ ] `app/opengraph-image.tsx` per route — Next.js OG image generation using the wordmark + work title.
+- [x] `app/sitemap.ts` — DB-driven sitemap (works + series + chapters + static routes).
+- [x] `app/robots.ts` — allows everything except `/studio/*`.
+- [x] `app/feed.xml/route.ts` — RSS for recent standalone dispatches (1h cache).
+- [x] `opengraph-image.tsx` — root + `/read/[slug]` + `/series/[slug]` + `/series/[slug]/[chapter]` via `next/og`.
 - [ ] Real cover images — replace `picsum.photos` URLs in `mock-content.ts` (or in DB rows) with real photos uploaded to Supabase Storage.
 - [ ] Replace `AUTHOR.portraitUrl` with a real photo of yourself.
-- [ ] Add an Instagram link parser — embed an Instagram post into prose (`<iframe src="…/embed"/>` block in the editor).
+- [x] Instagram embed — TipTap `InstagramNode` (`/p`, `/reel`, `/tv`) + toolbar button. Renders `<div class="instagram-embed"><iframe src=".../embed"/></div>` so no companion JS needed.
 - [ ] Favicon: regenerate `public/favicon.svg` with a Highcrest "m" rendered to inline `<path>` so the favicon matches the wordmark exactly (use the Highcrest font in Figma → export the "m" as SVG path).
-- [ ] Add 404 illustrations for `/studio` separately from the public not-found.
-- [ ] **More flexible "kind of work" picker.** Currently `/studio/works/new` forces a choice between poem / essay / one-shot — feels restrictive when you want to write an article, a blog post, a short story, a note, etc. Two paths:
-  - **Light:** extend the `work_kind` enum with `article`, `story`, `note` (migration `0003_extend_work_kind.sql`), add picker cards + `KindChip` labels for each. Keeps a clean discriminator for rendering rules (e.g., poetry mode auto-on for `poem`).
-  - **Heavy:** drop the picker entirely on creation — every new draft starts as a generic "piece", and the kind/genre is just a free-text label or tag chosen later in the editor. Simpler UX, but loses the per-kind layout hooks.
-  - Decide once you have ~10 published works and the actual buckets are obvious.
+- [x] Studio 404 — `/studio/(protected)/not-found.tsx` keeps the chrome.
+- [x] **More flexible "kind of work" picker.** Took the **light** path: `0004_extend_work_kind.sql` adds `article`, `story`, `note`; picker now shows six cards (poem / essay / one-shot / article / story / note); `KindChip` labels updated. **User must run** the migration before the new picker entries will save. Series stays separate (created from `/studio/series/new`).
 
 ---
 

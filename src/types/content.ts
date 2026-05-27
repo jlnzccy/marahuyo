@@ -1,4 +1,11 @@
-export type WorkKind = "poem" | "essay" | "oneshot" | "series";
+export type WorkKind =
+  | "poem"
+  | "essay"
+  | "oneshot"
+  | "series"
+  | "article"
+  | "story"
+  | "note";
 
 export type WorkStatus = "draft" | "published";
 
@@ -19,7 +26,7 @@ export interface BaseWork {
 }
 
 export interface StandaloneWork extends BaseWork {
-  kind: "poem" | "essay" | "oneshot";
+  kind: "poem" | "essay" | "oneshot" | "article" | "story" | "note";
   /** Rich text body — HTML or structured JSON depending on storage. */
   body: string;
   /** Set true on poetry to render with whitespace-preserved formatting. */

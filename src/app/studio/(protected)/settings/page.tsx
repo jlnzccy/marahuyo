@@ -1,0 +1,55 @@
+import { getAdminSupabase } from "@/lib/supabase/admin";
+import type { SettingsRow } from "@/lib/supabase/types";
+import { SettingsForm, type InitialSettings } from "./settings-form";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Settings · Studio" };
+
+const DEFAULTS: InitialSettings = {
+  defaultTheme: "light",
+  instagramUrl: "",
+  twitterUrl: "",
+  substackUrl: "",
+  githubUrl: "",
+  contactEmail: "",
+  portraitUrl: "",
+  authorSubtitle: ""
+};
+
+export default async function StudioSettingsPage() {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("settings")
+    .select("*")
+    .eq("id", "singleton")
+    .maybeSingle()
+    .returns<SettingsRow | null>();
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-6">
+        <p className="font-sans text-sm text-red-700">
+          Couldn&rsquo;t load settings: {error.message}
+        </p>
+        <p className="mt-2 font-sans text-xs text-red-700/80">
+          Did you apply <code>supabase/migrations/0003_settings.sql</code>?
+        </p>
+      </div>
+    );
+  }
+
+  const initial: InitialSettings = data
+    ? {
+        defaultTheme: data.default_theme ?? "light",
+        instagramUrl: data.instagram_url ?? "",
+        twitterUrl: data.twitter_url ?? "",
+        substackUrl: data.substack_url ?? "",
+        githubUrl: data.github_url ?? "",
+        contactEmail: data.contact_email ?? "",
+        portraitUrl: data.portrait_url ?? "",
+        authorSubtitle: data.author_subtitle ?? ""
+      }
+    : DEFAULTS;
+
+  return <SettingsForm initial={initial} />;
+}
