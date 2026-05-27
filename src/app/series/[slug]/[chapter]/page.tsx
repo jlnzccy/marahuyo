@@ -1,20 +1,18 @@
 import { notFound } from "next/navigation";
 import { ReaderShell } from "@/components/reader-shell";
-import { findChapter, SERIES } from "@/lib/mock-content";
+import { getChapter, getPublishedChapterParams } from "@/lib/works";
 
 type Params = { slug: string; chapter: string };
 
-export function generateStaticParams(): Params[] {
-  return SERIES.flatMap((s) =>
-    s.chapters
-      .filter((c) => c.status === "published")
-      .map((c) => ({ slug: s.slug, chapter: c.slug }))
-  );
+export const dynamicParams = true;
+
+export async function generateStaticParams(): Promise<Params[]> {
+  return getPublishedChapterParams();
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   const { slug, chapter } = await params;
-  const found = findChapter(slug, chapter);
+  const found = await getChapter(slug, chapter);
   if (!found) return {};
   return {
     title: `${found.chapter.title} — ${found.series.title}`,
@@ -24,8 +22,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
 
 export default async function ChapterPage({ params }: { params: Promise<Params> }) {
   const { slug, chapter } = await params;
-  const found = findChapter(slug, chapter);
-  if (!found || found.chapter.status !== "published") notFound();
+  const found = await getChapter(slug, chapter);
+  if (!found) notFound();
 
   const { series, chapter: c } = found;
   const published = series.chapters.filter((ch) => ch.status === "published");

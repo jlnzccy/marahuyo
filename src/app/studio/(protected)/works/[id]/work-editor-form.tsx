@@ -10,6 +10,7 @@ import {
   deleteWork
 } from "@/app/studio/(protected)/_actions/works";
 import { Editor, type EditorPayload } from "@/app/studio/(protected)/_components/editor";
+import { CoverUploader } from "@/app/studio/(protected)/_components/cover-uploader";
 import {
   SaveIndicator,
   type SaveStatus
@@ -326,24 +327,11 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
               />
             </label>
 
-            <label className="block">
-              <span className="meta">cover image URL</span>
-              <input
-                type="url"
-                value={coverImage}
-                onChange={(e) => setCoverImage(e.target.value)}
-                placeholder="https://…"
-                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-1.5 font-mono text-xs text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
-              />
-              {coverImage && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={coverImage}
-                  alt=""
-                  className="mt-2 aspect-[4/3] w-full rounded-md object-cover"
-                />
-              )}
-            </label>
+            <CoverUploader
+              workId={initial.id}
+              value={coverImage}
+              onChange={setCoverImage}
+            />
 
             <label className="flex items-center gap-2 pt-2">
               <input

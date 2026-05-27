@@ -7,28 +7,30 @@ import { ReaderContainer } from "@/components/reader-container";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { KindChip } from "@/components/kind-chip";
 import { FadeUp } from "@/components/motion";
-import { findSeriesBySlug, SERIES } from "@/lib/mock-content";
+import { getPublishedSeriesSlugs, getSeriesBySlug } from "@/lib/works";
 
 type Params = { slug: string };
 
-export function generateStaticParams(): Params[] {
-  return SERIES.map((s) => ({ slug: s.slug }));
+export const dynamicParams = true;
+
+export async function generateStaticParams(): Promise<Params[]> {
+  const slugs = await getPublishedSeriesSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const series = findSeriesBySlug(slug);
+  const series = await getSeriesBySlug(slug);
   if (!series) return {};
   return { title: series.title, description: series.excerpt };
 }
 
 export default async function SeriesPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const series = findSeriesBySlug(slug);
+  const series = await getSeriesBySlug(slug);
   if (!series) notFound();
 
   const published = series.chapters.filter((c) => c.status === "published");
-  const drafts = series.chapters.filter((c) => c.status === "draft");
   const first = published[0];
 
   return (
@@ -81,46 +83,41 @@ export default async function SeriesPage({ params }: { params: Promise<Params> }
 
           <FadeUp>
             <h2 className="font-italic italic text-2xl text-muted md:text-3xl">chapters</h2>
-            <ol className="mt-6 max-w-3xl">
-              {published.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    href={`/series/${series.slug}/${c.slug}`}
-                    className="group block border-t border-border/60 py-5 transition-colors hover:bg-surface/40"
-                  >
-                    <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:gap-8">
-                      <div className="meta md:w-24 md:shrink-0">
-                        Ch. {String(c.number).padStart(2, "0")}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-serif text-xl font-bold leading-snug text-ink transition-transform duration-500 ease-out-expo group-hover:translate-x-0.5">
-                          {c.title}
+            {published.length === 0 ? (
+              <p className="mt-6 font-italic italic text-lg text-muted">
+                no chapters yet — soon.
+              </p>
+            ) : (
+              <ol className="mt-6 max-w-3xl">
+                {published.map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      href={`/series/${series.slug}/${c.slug}`}
+                      className="group block border-t border-border/60 py-5 transition-colors hover:bg-surface/40"
+                    >
+                      <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:gap-8">
+                        <div className="meta md:w-24 md:shrink-0">
+                          Ch. {String(c.number).padStart(2, "0")}
                         </div>
-                        {c.subtitle && (
-                          <div className="mt-1 font-italic italic text-base text-muted">
-                            {c.subtitle}
+                        <div className="flex-1">
+                          <div className="font-serif text-xl font-bold leading-snug text-ink transition-transform duration-500 ease-out-expo group-hover:translate-x-0.5">
+                            {c.title}
                           </div>
-                        )}
+                          {c.subtitle && (
+                            <div className="mt-1 font-italic italic text-base text-muted">
+                              {c.subtitle}
+                            </div>
+                          )}
+                        </div>
+                        <div className="meta md:w-24 md:text-right">
+                          {c.readingMinutes} min
+                        </div>
                       </div>
-                      <div className="meta md:w-24 md:text-right">
-                        {c.readingMinutes} min
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-              {drafts.map((c) => (
-                <li key={c.id} className="border-t border-border/40">
-                  <div className="flex items-baseline gap-8 py-5 opacity-50">
-                    <div className="meta w-24">Ch. {String(c.number).padStart(2, "0")}</div>
-                    <div className="flex-1 font-serif text-xl font-bold text-muted">
-                      {c.title}
-                    </div>
-                    <div className="meta">draft</div>
-                  </div>
-                </li>
-              ))}
-            </ol>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            )}
           </FadeUp>
         </ReaderContainer>
       </main>

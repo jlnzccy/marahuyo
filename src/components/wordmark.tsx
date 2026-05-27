@@ -5,7 +5,6 @@ type Props = {
   size?: "sm" | "md" | "lg" | "xl";
   asLink?: boolean;
   className?: string;
-  showTagline?: boolean;
 };
 
 const SIZES: Record<NonNullable<Props["size"]>, string> = {
@@ -18,8 +17,7 @@ const SIZES: Record<NonNullable<Props["size"]>, string> = {
 export function Wordmark({
   size = "md",
   asLink = true,
-  className,
-  showTagline = true
+  className
 }: Props) {
   const inner = (
     <span
@@ -36,16 +34,8 @@ export function Wordmark({
   if (!asLink) return inner;
 
   return (
-    <Link href="/" aria-label="Marahuyo — home" className="group inline-flex items-baseline gap-2">
+    <Link href="/" aria-label="Marahuyo — home" className="inline-flex items-baseline">
       {inner}
-      {showTagline && (
-        <span
-          aria-hidden
-          className="meta hidden sm:inline opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        >
-          to be enchanted
-        </span>
-      )}
     </Link>
   );
 }

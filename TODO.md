@@ -12,13 +12,11 @@ Last updated: 2026-05-27. Phase 0 complete: studio auth swapped from Supabase ma
 - [x] **Auth replaced.** `STUDIO_OWNER_EMAIL` + magic-link removed. New env vars: `STUDIO_USERNAME=jasthtcs`, `STUDIO_PASSWORD=chanjae13`, `STUDIO_SESSION_SECRET=<32-byte hex>`.
 - [x] **GitHub.** Repo: https://github.com/jlnzccy/marahuyo. SSH key `~/.ssh/id_ed25519_jlnzccy` bound via `~/.ssh/config`. Git identity = `jlnzccy` / `j.lnzccy@gmail.com`.
 - [x] **Vercel.** Project `marahuyo` (org `jae-s-projects`) linked to repo. Production env vars set (`STUDIO_USERNAME`, `STUDIO_PASSWORD`, `STUDIO_SESSION_SECRET` — production secret is *different* from local). Aliased to `marahuyoph.vercel.app`. Auto-deploys on push to `main`.
-- [ ] **Apply the schema to your Supabase project.**
-  - **Option A:** Supabase Dashboard → SQL Editor → New query → paste `supabase/migrations/0001_init.sql` → Run.
-  - **Option B (CLI):** `npm i -g supabase` → `supabase login` → `supabase link --project-ref jlssmixxfdiytdopwwvp` → `supabase db push`.
-- [ ] **Smoke-test login.** Visit `marahuyoph.vercel.app/studio/login`, sign in with `jasthtcs` / `chanjae13`, confirm `/studio` loads.
+- [x] **Apply the schema to your Supabase project.** Ran `supabase/migrations/0001_init.sql` via SQL Editor.
+- [x] **Smoke-test login.** Confirmed `/studio` loads, can create works.
 - [ ] **Delete the legacy Supabase auth user.** Dashboard → Authentication → Users → remove any existing entry (or leave — it's harmless, the app no longer queries `auth.users`).
-- [ ] **Clean up dead middleware.** `middleware.ts` still refreshes a Supabase auth cookie that nothing reads. Either delete the file (safe — `/studio/*` is now guarded only by `(protected)/layout.tsx`) or keep it as a no-op. Recommend delete.
-- [ ] **Add Vercel env vars to Preview + Development.** Current CLI prompt blocked; add via dashboard if you start using PR previews. Same three values; production secret stays unique.
+- [x] **Clean up dead middleware.** Deleted `middleware.ts` — was refreshing a Supabase auth cookie nothing reads. `/studio/*` guarded by `(protected)/layout.tsx`.
+- [x] **Add Vercel env vars to Preview + Development.** Done via `vercel env add ... preview/development`. Note: `STUDIO_USERNAME` Preview is currently scoped to branch `dev-marahuyo` only — re-add unscoped if previews ever run from other branches. Supabase keys (URL/ANON/SERVICE_ROLE) still Production-only — add to Preview/Dev when previews need DB.
 - [ ] **Rotate any keys ever pasted in chat.** Supabase Dashboard → Settings → API → Reset publishable + secret. Update `.env.local` and the matching Vercel env vars.
 
 ---
@@ -77,36 +75,24 @@ All actions are in `src/app/studio/(protected)/_actions/works.ts`. Each re-check
 - [ ] `/studio/settings` — default theme, social links. Probably needs a new `settings` row in Supabase. (No more "owner email" — auth is env-backed.)
 - [ ] Replace the native `window.confirm` delete-flow with an inline modal (`<dialog>` element or a small Framer Motion sheet).
 
-### 1.6 — Image uploads
+### 1.6 — Image uploads ✅ DONE
 
-- [ ] In Supabase Dashboard → Storage → create a public bucket `covers/`.
-- [ ] Server action `uploadCover(workId, file)` that uses `getAdminSupabase().storage.from('covers').upload(...)` and writes the returned public URL to `work.cover_image`.
-- [ ] Replace the plain "cover image URL" input in `work-editor-form.tsx` with a drag-and-drop dropzone.
-- [ ] Restrict to image MIME types and 5 MB max; reject anything else server-side too.
+- [x] Migration `supabase/migrations/0002_storage_covers.sql` creates the public `covers` bucket + `covers public read` policy on `storage.objects`. **User must run it** in Supabase SQL Editor before uploads work in production.
+- [x] Server action `uploadCover(formData)` in `_actions/works.ts`: re-checks owner, validates MIME + 5 MB cap, stores under `covers/<workId>/<ts>-<slug>.<ext>`, writes the public URL to `works.cover_image`, revalidates reading surfaces if published.
+- [x] New `CoverUploader` client component (`_components/cover-uploader.tsx`): drag-drop, click-pick, preview, clear, in-progress state, error surface, and a collapsed "paste URL" fallback.
+- [x] Wired into `work-editor-form.tsx`, replacing the URL-only input.
 
 ---
 
-## Phase 2 — Wire live data into the public site (~half session)
+## Phase 2 — Wire live data into the public site ✅ DONE
 
-Today every public page reads from `src/lib/mock-content.ts`. Swap to Supabase.
-
-- [ ] Create `src/lib/works.ts` with the read APIs:
-  - `getAllPublishedWorks()`
-  - `getStandaloneBySlug(slug)`
-  - `getSeriesBySlug(slug)` (joins chapters)
-  - `getChapter(seriesSlug, chapterSlug)`
-  - `getRecentDispatches(limit)` (used on Homepage)
-- [ ] Each function uses `getServerSupabase()` (RLS-respecting) — no admin client for reads.
-- [ ] Replace mock imports in:
-  - `src/app/page.tsx`
-  - `src/app/works/page.tsx`
-  - `src/app/read/[slug]/page.tsx`
-  - `src/app/series/[slug]/page.tsx`
-  - `src/app/series/[slug]/[chapter]/page.tsx`
-  - `src/app/about/page.tsx` (only `AUTHOR` — move to a `settings` row or keep in code)
-- [ ] Adjust `generateStaticParams` to fetch published slugs from Supabase (and set `dynamicParams = true` so new posts work without a redeploy).
-- [ ] Add a `revalidatePath('/')` and `revalidatePath('/works')` in every publish action.
-- [ ] Keep `mock-content.ts` as a backup seed file — useful for resetting a local dev DB.
+- [x] Created `src/lib/works.ts` with read APIs: `getAllPublishedWorks`, `getStandaloneBySlug`, `getSeriesBySlug`, `getChapter`, `getRecentDispatches`, `getFeaturedWork`, plus slug enumerators for `generateStaticParams` (`getPublishedStandaloneSlugs`, `getPublishedSeriesSlugs`, `getPublishedChapterParams`).
+- [x] Uses a stateless anon-key client (`createClient` from `@supabase/supabase-js`) — RLS still enforces published-only, but no cookies binding so `generateStaticParams` works at build time. (Initial `getServerSupabase()` wiring failed build with "cookies was called outside a request scope".)
+- [x] Swapped mock imports in `src/app/page.tsx`, `/works/page.tsx`, `/read/[slug]/page.tsx`, `/series/[slug]/page.tsx`, `/series/[slug]/[chapter]/page.tsx`. `about/page.tsx` still uses `AUTHOR` from `mock-content.ts` — move to a `settings` row later.
+- [x] `generateStaticParams` now fetches slugs from DB; each dynamic route exports `dynamicParams = true` so new published rows resolve without redeploy.
+- [x] `revalidatePath('/')` + `revalidatePath('/works')` already in `_actions/works.ts` — no change needed.
+- [x] Kept `mock-content.ts` (`AUTHOR` + types) as backup seed.
+- [x] Empty-state copy added on `/` (hides featured + recent sections when no data) and `/works` ("the archive is quiet — soon.") + `/series/[slug]` ("no chapters yet").
 
 ---
 

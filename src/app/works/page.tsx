@@ -5,16 +5,14 @@ import { ReaderContainer } from "@/components/reader-container";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { FadeUp } from "@/components/motion";
 import { WorkRow } from "@/components/work-row";
-import { POEMS, ESSAYS, SERIES } from "@/lib/mock-content";
+import { getAllPublishedWorks } from "@/lib/works";
 
 export const metadata = {
   title: "Works — the archive"
 };
 
-export default function WorksPage() {
-  const all = [...SERIES, ...POEMS, ...ESSAYS]
-    .filter((w) => w.status === "published")
-    .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
+export default async function WorksPage() {
+  const all = await getAllPublishedWorks();
 
   return (
     <>
@@ -36,9 +34,13 @@ export default function WorksPage() {
 
           <FadeUp delay={0.1}>
             <div className="mx-auto max-w-3xl">
-              {all.map((w) => (
-                <WorkRow key={w.id} work={w} />
-              ))}
+              {all.length === 0 ? (
+                <p className="py-16 text-center font-italic italic text-xl text-muted">
+                  the archive is quiet — soon.
+                </p>
+              ) : (
+                all.map((w) => <WorkRow key={w.id} work={w} />)
+              )}
             </div>
           </FadeUp>
 

@@ -1,18 +1,22 @@
 import { notFound } from "next/navigation";
 import { ReaderShell } from "@/components/reader-shell";
-import { findStandaloneBySlug, POEMS, ESSAYS, ONESHOTS } from "@/lib/mock-content";
+import {
+  getPublishedStandaloneSlugs,
+  getStandaloneBySlug
+} from "@/lib/works";
 
 type Params = { slug: string };
 
-export function generateStaticParams(): Params[] {
-  return [...POEMS, ...ESSAYS, ...ONESHOTS]
-    .filter((w) => w.status === "published")
-    .map((w) => ({ slug: w.slug }));
+export const dynamicParams = true;
+
+export async function generateStaticParams(): Promise<Params[]> {
+  const slugs = await getPublishedStandaloneSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const work = findStandaloneBySlug(slug);
+  const work = await getStandaloneBySlug(slug);
   if (!work) return {};
   return {
     title: work.title,
@@ -22,8 +26,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
 
 export default async function ReadPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const work = findStandaloneBySlug(slug);
-  if (!work || work.status !== "published") notFound();
+  const work = await getStandaloneBySlug(slug);
+  if (!work) notFound();
 
   const date = work.publishedAt
     ? new Date(work.publishedAt).toLocaleDateString("en-US", {

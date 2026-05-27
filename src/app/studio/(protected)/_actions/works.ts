@@ -251,6 +251,92 @@ export async function createChapter(seriesId: string, title: string) {
   redirect(`/studio/series/${seriesId}/chapters/${data.id}`);
 }
 
+// =============================================================================
+// Cover image uploads (Supabase Storage → covers/ bucket)
+// =============================================================================
+
+const COVER_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const COVER_ALLOWED_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+  "image/gif"
+]);
+
+export type UploadCoverResult = { ok: true; url: string } | { ok: false; error: string };
+
+/**
+ * Uploads a cover image for `workId` to the public `covers` bucket and writes
+ * the resulting public URL back onto `works.cover_image`. Returns either a new
+ * URL or a user-facing error message — the form decides how to show it.
+ */
+export async function uploadCover(formData: FormData): Promise<UploadCoverResult> {
+  await assertOwner();
+
+  const workId = String(formData.get("workId") ?? "");
+  const file = formData.get("file");
+
+  if (!workId) return { ok: false, error: "Missing workId." };
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "No file received." };
+  }
+  if (!COVER_ALLOWED_MIME.has(file.type)) {
+    return {
+      ok: false,
+      error: `Unsupported file type (${file.type || "unknown"}). Use JPEG, PNG, WebP, AVIF, or GIF.`
+    };
+  }
+  if (file.size > COVER_MAX_BYTES) {
+    return {
+      ok: false,
+      error: `File too large (${(file.size / (1024 * 1024)).toFixed(2)} MB). Max is 5 MB.`
+    };
+  }
+
+  const supabase = getAdminSupabase();
+
+  // Filename: <timestamp>-<safe-name>.<ext>
+  // Stored under covers/<workId>/ so re-uploads stay grouped per work.
+  const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const base = slugify(file.name.replace(/\.[^.]+$/, "")) || "cover";
+  const objectPath = `${workId}/${Date.now()}-${base}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("covers")
+    .upload(objectPath, file, {
+      contentType: file.type,
+      upsert: false,
+      cacheControl: "31536000"
+    });
+
+  if (uploadError) {
+    return { ok: false, error: `Upload failed: ${uploadError.message}` };
+  }
+
+  const { data: publicData } = supabase.storage.from("covers").getPublicUrl(objectPath);
+  const publicUrl = publicData.publicUrl;
+
+  // Persist the URL on the work row so reader pages pick it up.
+  const patch: WorkUpdate = { cover_image: publicUrl };
+  const { data: updated, error: updateError } = await supabase
+    .from("works")
+    .update(patch as never)
+    .eq("id", workId)
+    .select("slug, status")
+    .single();
+
+  if (updateError) {
+    return { ok: false, error: `Saved file but failed to attach: ${updateError.message}` };
+  }
+
+  const row = updated as Pick<WorkRow, "slug" | "status"> | null;
+  if (row?.status === "published") revalidateReadingSurfaces(row.slug);
+  revalidatePath(`/studio/works/${workId}`);
+
+  return { ok: true, url: publicUrl };
+}
+
 export async function reorderChapters(seriesId: string, orderedIds: string[]) {
   await assertOwner();
   const supabase = getAdminSupabase();

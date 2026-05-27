@@ -8,17 +8,15 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { FeaturedCard } from "@/components/featured-card";
 import { WorkRow, workHref } from "@/components/work-row";
 import { FadeUp } from "@/components/motion";
-import { AUTHOR, FEATURED_WORK, POEMS, ESSAYS, ONESHOTS } from "@/lib/mock-content";
+import { AUTHOR } from "@/lib/mock-content";
+import { getFeaturedWork, getRecentDispatches } from "@/lib/works";
 
-export default function HomePage() {
-  const featuredHref = workHref(FEATURED_WORK);
+export default async function HomePage() {
+  const featured = await getFeaturedWork();
+  const featuredHref = featured ? workHref(featured) : "/works";
 
-  const recent = [...ESSAYS, ...ONESHOTS, ...POEMS]
-    .filter((w) => w.status === "published")
-    .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
-    // Featured already shown above; skip it in the list.
-    .filter((w) => w.id !== FEATURED_WORK.id)
-    .slice(0, 4);
+  const recentRaw = await getRecentDispatches(5);
+  const recent = recentRaw.filter((w) => w.id !== featured?.id).slice(0, 4);
 
   return (
     <>
@@ -66,22 +64,24 @@ export default function HomePage() {
         </section>
 
         {/* ---------- Featured ---------- */}
-        <section className="pb-24">
-          <ReaderContainer width="wide">
-            <div className="mb-6 flex items-end justify-between">
-              <h2 className="font-italic italic text-2xl text-muted md:text-3xl">
-                the latest dispatch
-              </h2>
-              <Link
-                href="/works"
-                className="meta hover:text-ink transition-colors"
-              >
-                full archive →
-              </Link>
-            </div>
-            <FeaturedCard work={FEATURED_WORK} href={featuredHref} />
-          </ReaderContainer>
-        </section>
+        {featured && (
+          <section className="pb-24">
+            <ReaderContainer width="wide">
+              <div className="mb-6 flex items-end justify-between">
+                <h2 className="font-italic italic text-2xl text-muted md:text-3xl">
+                  the latest dispatch
+                </h2>
+                <Link
+                  href="/works"
+                  className="meta hover:text-ink transition-colors"
+                >
+                  full archive →
+                </Link>
+              </div>
+              <FeaturedCard work={featured} href={featuredHref} />
+            </ReaderContainer>
+          </section>
+        )}
 
         {/* ---------- Author intro ---------- */}
         <section className="pb-24">
@@ -121,39 +121,41 @@ export default function HomePage() {
         </section>
 
         {/* ---------- Recent dispatches ---------- */}
-        <section className="pb-24">
-          <ReaderContainer width="wide">
-            <div className="mb-8 flex items-end justify-between border-b border-border/60 pb-6">
-              <div>
-                <p className="meta mb-2">recent dispatches</p>
-                <h2 className="font-serif text-3xl font-bold md:text-4xl">
-                  Quieter <span className="font-italic italic font-normal">things</span>
-                </h2>
+        {recent.length > 0 && (
+          <section className="pb-24">
+            <ReaderContainer width="wide">
+              <div className="mb-8 flex items-end justify-between border-b border-border/60 pb-6">
+                <div>
+                  <p className="meta mb-2">recent dispatches</p>
+                  <h2 className="font-serif text-3xl font-bold md:text-4xl">
+                    Quieter <span className="font-italic italic font-normal">things</span>
+                  </h2>
+                </div>
+                <Link
+                  href="/works"
+                  className="hidden font-sans text-sm text-muted hover:text-ink transition-colors md:inline"
+                >
+                  All works →
+                </Link>
               </div>
-              <Link
-                href="/works"
-                className="hidden font-sans text-sm text-muted hover:text-ink transition-colors md:inline"
-              >
-                All works →
-              </Link>
-            </div>
 
-            <div className="mx-auto max-w-4xl">
-              {recent.map((work) => (
-                <WorkRow key={work.id} work={work} />
-              ))}
-            </div>
+              <div className="mx-auto max-w-4xl">
+                {recent.map((work) => (
+                  <WorkRow key={work.id} work={work} />
+                ))}
+              </div>
 
-            <div className="mt-12 text-center">
-              <Link
-                href="/works"
-                className="font-italic italic text-lg text-muted underline decoration-muted/30 underline-offset-[6px] transition-colors hover:text-ink hover:decoration-ink"
-              >
-                wander the rest of the archive →
-              </Link>
-            </div>
-          </ReaderContainer>
-        </section>
+              <div className="mt-12 text-center">
+                <Link
+                  href="/works"
+                  className="font-italic italic text-lg text-muted underline decoration-muted/30 underline-offset-[6px] transition-colors hover:text-ink hover:decoration-ink"
+                >
+                  wander the rest of the archive →
+                </Link>
+              </div>
+            </ReaderContainer>
+          </section>
+        )}
 
         {/* ---------- Closing voice ---------- */}
         <section className="pb-32">
