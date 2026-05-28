@@ -1,22 +1,10 @@
 import Link from "next/link";
 import { FileText, Library, PenLine, FilePlus } from "lucide-react";
 import { getStudioStats } from "./_actions/studio-stats";
-
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days === 1) return "yesterday";
-  if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
+import { relativeTime } from "@/lib/format";
 
 function formatNumber(n: number): string {
-  return n.toLocaleString("en-US");
+  return n.toLocaleString();
 }
 
 function editorHref(kind: string, id: string): string {

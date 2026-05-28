@@ -254,7 +254,7 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
             className="w-full bg-transparent font-italic italic text-xl text-muted placeholder:text-whisper focus:outline-none md:text-2xl"
           />
 
-          <div className="hairline" aria-hidden />
+          <div className="hairline" aria-hidden="true" />
 
           <Editor
             initialContent={initial.body}

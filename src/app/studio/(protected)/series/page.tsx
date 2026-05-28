@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus, Library } from "lucide-react";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import type { WorkRow } from "@/lib/supabase/types";
+import { relativeTime } from "@/lib/format";
 
 type SeriesListRow = Pick<
   WorkRow,
@@ -11,24 +12,13 @@ type SeriesListRow = Pick<
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Series · Studio" };
 
-function formatRelative(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.round(diff / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
-
 export default async function StudioSeriesList() {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("works")
     .select("id, slug, title, status, updated_at, chapters(id, status)")
     .eq("kind", "series")
+    .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .returns<SeriesListRow[]>();
 
@@ -107,7 +97,7 @@ export default async function StudioSeriesList() {
                 <span className="meta">
                   {published}/{total} chapter{total === 1 ? "" : "s"}
                 </span>
-                <span className="meta">{formatRelative(row.updated_at)}</span>
+                <span className="meta">{relativeTime(row.updated_at)}</span>
               </Link>
             </li>
           );

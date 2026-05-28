@@ -55,17 +55,14 @@ export function FeaturedCard({ work, href, eyebrow = "latest letter" }: Props) {
           </div>
         </div>
 
-        {/* Image column */}
-        <Link
-          href={href}
-          aria-hidden
-          tabIndex={-1}
-          className="relative order-1 block aspect-[5/4] overflow-hidden rounded-2xl bg-surface md:order-2 md:aspect-auto md:min-h-[460px]"
-        >
+        {/* Image column — decorative; the text-side CTA is the only interactive
+            entry-point. Keeping a single tabbable link avoids the double-stop
+            and the empty `alt=""` accessibility smell. */}
+        <div className="relative order-1 block aspect-[5/4] overflow-hidden rounded-2xl bg-surface md:order-2 md:aspect-auto md:min-h-[460px]">
           {cover && (
             <Image
               src={cover}
-              alt=""
+              alt={`Cover for ${work.title}`}
               fill
               sizes="(min-width: 768px) 50vw, 100vw"
               className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.03]"
@@ -77,7 +74,7 @@ export function FeaturedCard({ work, href, eyebrow = "latest letter" }: Props) {
               <span className="font-italic italic text-xl text-whisper">no cover yet</span>
             </div>
           )}
-        </Link>
+        </div>
       </div>
     </motion.article>
   );

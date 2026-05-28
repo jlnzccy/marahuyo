@@ -8,7 +8,7 @@ export function ReadingProgress() {
 
   return (
     <motion.div
-      aria-hidden
+      aria-hidden="true"
       style={{ scaleX }}
       className="no-print fixed inset-x-0 top-0 z-[60] h-[2px] origin-left bg-accent/80"
     />

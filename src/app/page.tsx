@@ -13,19 +13,21 @@ import { getFeaturedWork, getRecentDispatches, getRandomEpigraph } from "@/lib/w
 import { getSiteSettings } from "@/lib/settings";
 
 export default async function HomePage() {
-  const featured = await getFeaturedWork();
+  const [settings, featured, recentRaw, epigraph] = await Promise.all([
+    getSiteSettings(),
+    getFeaturedWork(),
+    getRecentDispatches(5),
+    getRandomEpigraph()
+  ]);
+
+  const { author } = settings;
   const featuredHref = featured ? workHref(featured) : "/works";
-
-  const recentRaw = await getRecentDispatches(5);
   const recent = recentRaw.filter((w) => w.id !== featured?.id).slice(0, 4);
-
-  const { author } = await getSiteSettings();
-  const epigraph = await getRandomEpigraph();
 
   return (
     <>
       <SiteHeader transparentOnTop />
-      <main>
+      <main id="main-content">
         {/* ---------- Hero: Author intro ---------- */}
         <section className="relative pt-20 pb-24 md:pt-28 md:pb-32">
           <ReaderContainer width="wide">

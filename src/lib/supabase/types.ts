@@ -1,15 +1,15 @@
 // Hand-written types mirroring the SQL schema in supabase/migrations/0001_init.sql.
-// Replace with `supabase gen types typescript` output once your project is live.
+// To regenerate against the live DB run `npm run gen-types` — requires the
+// Supabase CLI logged in + SUPABASE_PROJECT_REF set.
 
-export type WorkKind =
-  | "poem"
-  | "essay"
-  | "oneshot"
-  | "series"
-  | "article"
-  | "story"
-  | "note";
+// WorkKind is sourced from the single content-layer source of truth so the DB
+// enum can't silently drift from the editor / reader.
+export type { WorkKind } from "@/types/content";
+import type { WorkKind } from "@/types/content";
+
 export type WorkStatusDb = "draft" | "published";
+
+export type SeriesStatusDb = "ongoing" | "completed" | "hiatus";
 
 export interface WorkRow {
   id: string;
@@ -18,15 +18,16 @@ export interface WorkRow {
   subtitle: string | null;
   kind: WorkKind;
   status: WorkStatusDb;
+  series_status: SeriesStatusDb;
   excerpt: string;
   body: string;
   poetry_mode: boolean;
   tags: string[];
   cover_image: string | null;
-  cover_color: string | null;
   word_count: number;
   reading_minutes: number;
   published_at: string | null;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -38,36 +39,36 @@ export interface WorkInsert {
   subtitle?: string | null;
   kind: WorkKind;
   status?: WorkStatusDb;
+  series_status?: SeriesStatusDb;
   excerpt?: string;
   body?: string;
   poetry_mode?: boolean;
   tags?: string[];
   cover_image?: string | null;
-  cover_color?: string | null;
   word_count?: number;
   reading_minutes?: number;
   published_at?: string | null;
+  deleted_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface WorkUpdate {
-  id?: string;
   slug?: string;
   title?: string;
   subtitle?: string | null;
   kind?: WorkKind;
   status?: WorkStatusDb;
+  series_status?: SeriesStatusDb;
   excerpt?: string;
   body?: string;
   poetry_mode?: boolean;
   tags?: string[];
   cover_image?: string | null;
-  cover_color?: string | null;
   word_count?: number;
   reading_minutes?: number;
   published_at?: string | null;
-  created_at?: string;
+  deleted_at?: string | null;
   updated_at?: string;
 }
 
@@ -85,6 +86,7 @@ export interface ChapterRow {
   word_count: number;
   reading_minutes: number;
   published_at: string | null;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -103,12 +105,12 @@ export interface ChapterInsert {
   word_count?: number;
   reading_minutes?: number;
   published_at?: string | null;
+  deleted_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface ChapterUpdate {
-  id?: string;
   series_id?: string;
   slug?: string;
   number?: number;
@@ -121,7 +123,7 @@ export interface ChapterUpdate {
   word_count?: number;
   reading_minutes?: number;
   published_at?: string | null;
-  created_at?: string;
+  deleted_at?: string | null;
   updated_at?: string;
 }
 
@@ -207,7 +209,11 @@ export type Database = {
     Functions: {
       [_ in never]: never;
     };
-    Enums: { work_kind: WorkKind; work_status: WorkStatusDb };
+    Enums: {
+      work_kind: WorkKind;
+      work_status: WorkStatusDb;
+      series_status: SeriesStatusDb;
+    };
     CompositeTypes: {
       [_ in never]: never;
     };

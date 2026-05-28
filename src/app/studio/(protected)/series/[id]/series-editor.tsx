@@ -42,7 +42,7 @@ import {
   type SaveStatus
 } from "@/app/studio/(protected)/_components/save-indicator";
 import { cn } from "@/lib/cn";
-import type { WorkStatus } from "@/types/content";
+import type { SeriesStatus, WorkStatus } from "@/types/content";
 
 export type ChapterListItem = {
   id: string;
@@ -60,12 +60,19 @@ export type InitialSeries = {
   title: string;
   subtitle: string;
   status: WorkStatus;
+  seriesStatus: SeriesStatus;
   excerpt: string;
   tags: string[];
   coverImage: string;
   publishedAt: string | null;
   chapters: ChapterListItem[];
 };
+
+const SERIES_STATUSES: { value: SeriesStatus; label: string }[] = [
+  { value: "ongoing", label: "Ongoing" },
+  { value: "completed", label: "Completed" },
+  { value: "hiatus", label: "Hiatus" }
+];
 
 const SAVE_DEBOUNCE_MS = 1200;
 
@@ -76,6 +83,7 @@ export function SeriesEditor({ initial }: { initial: InitialSeries }) {
   const [excerpt, setExcerpt] = useState(initial.excerpt);
   const [tagsText, setTagsText] = useState(initial.tags.join(", "));
   const [coverImage, setCoverImage] = useState(initial.coverImage);
+  const [seriesStatus, setSeriesStatus] = useState<SeriesStatus>(initial.seriesStatus);
 
   const [status, setStatus] = useState<WorkStatus>(initial.status);
   const [saveState, setSaveState] = useState<SaveStatus>("idle");
@@ -98,7 +106,8 @@ export function SeriesEditor({ initial }: { initial: InitialSeries }) {
     subtitle: initial.subtitle,
     excerpt: initial.excerpt,
     tags: initial.tags,
-    coverImage: initial.coverImage
+    coverImage: initial.coverImage,
+    seriesStatus: initial.seriesStatus
   });
 
   const flushSave = useCallback(async () => {
@@ -112,7 +121,8 @@ export function SeriesEditor({ initial }: { initial: InitialSeries }) {
         subtitle: snap.subtitle || null,
         excerpt: snap.excerpt,
         tags: snap.tags,
-        coverImage: snap.coverImage || null
+        coverImage: snap.coverImage || null,
+        seriesStatus: snap.seriesStatus
       });
       setLastSavedAt(Date.now());
       setSaveState("saved");
@@ -139,11 +149,12 @@ export function SeriesEditor({ initial }: { initial: InitialSeries }) {
       subtitle,
       excerpt,
       tags,
-      coverImage
+      coverImage,
+      seriesStatus
     };
     if (didMount.current) scheduleSave();
     else didMount.current = true;
-  }, [title, subtitle, excerpt, tagsText, coverImage, scheduleSave]);
+  }, [title, subtitle, excerpt, tagsText, coverImage, seriesStatus, scheduleSave]);
 
   useEffect(() => {
     return () => {
@@ -320,7 +331,7 @@ export function SeriesEditor({ initial }: { initial: InitialSeries }) {
             />
           </div>
 
-          <div className="hairline" aria-hidden />
+          <div className="hairline" aria-hidden="true" />
 
           <section className="space-y-4">
             <div className="flex items-end justify-between">
@@ -420,6 +431,32 @@ export function SeriesEditor({ initial }: { initial: InitialSeries }) {
               value={coverImage}
               onChange={setCoverImage}
             />
+
+            <div className="space-y-1.5">
+              <span className="meta">series state</span>
+              <div role="radiogroup" aria-label="Series state" className="flex flex-wrap gap-1.5">
+                {SERIES_STATUSES.map((s) => {
+                  const active = s.value === seriesStatus;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setSeriesStatus(s.value)}
+                      className={cn(
+                        "rounded-md border px-2.5 py-1 font-mono text-[10px] uppercase tracking-meta transition-colors",
+                        active
+                          ? "border-accent/60 bg-canvas text-ink"
+                          : "border-border/60 bg-canvas/40 text-muted hover:text-ink"
+                      )}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </section>
 
           {initial.publishedAt && (

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut, FileText, Library, PenLine, Settings } from "lucide-react";
+import { LogOut, FileText, Library, PenLine, Settings, Trash2 } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
 import { signOut } from "@/app/studio/actions";
 
@@ -7,6 +7,7 @@ const NAV = [
   { href: "/studio", label: "Overview", icon: FileText, exact: true },
   { href: "/studio/works", label: "Works", icon: PenLine },
   { href: "/studio/series", label: "Series", icon: Library },
+  { href: "/studio/trash", label: "Trash", icon: Trash2 },
   { href: "/studio/settings", label: "Settings", icon: Settings }
 ];
 
@@ -53,7 +54,7 @@ export function StudioChrome({
           })}
         </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-5 py-10 md:px-8">{children}</main>
+      <main id="main-content" className="mx-auto max-w-6xl px-5 py-10 md:px-8">{children}</main>
     </div>
   );
 }

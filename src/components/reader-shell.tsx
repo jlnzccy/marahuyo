@@ -13,6 +13,7 @@ import { ShareButton } from "@/components/share-button";
 import { BookmarkTracker } from "@/components/bookmark-tracker";
 import { FadeUp } from "@/components/motion";
 import { cn } from "@/lib/cn";
+import { sanitizeHtml } from "@/lib/sanitize";
 import type { WorkKind } from "@/types/content";
 
 type FootLink = { href: string; label: string; hint?: string };
@@ -72,7 +73,7 @@ export function ReaderShell({
       )}
       <ReadingProgress />
       <SiteHeader scrollAware />
-      <main className="pt-12 pb-24 md:pt-20">
+      <main id="main-content" className="pt-12 pb-24 md:pt-20">
         <ReaderContainer>
           {index && (
             <FadeUp delay={0.02}>
@@ -92,7 +93,7 @@ export function ReaderShell({
               {eyebrow && <span className="meta">{eyebrow}</span>}
               {meta && (
                 <>
-                  <span aria-hidden className="meta text-whisper">·</span>
+                  <span aria-hidden="true" className="meta text-whisper">·</span>
                   <span className="meta">{meta}</span>
                 </>
               )}
@@ -118,7 +119,7 @@ export function ReaderShell({
               <figure className="relative mt-10 aspect-[16/10] w-full overflow-hidden rounded-xl border border-border/60 bg-surface md:-mx-12 md:w-auto">
                 <Image
                   src={coverImage}
-                  alt=""
+                  alt={`Cover for ${title}`}
                   fill
                   sizes="(min-width: 768px) 760px, 100vw"
                   className="object-cover"
@@ -128,12 +129,12 @@ export function ReaderShell({
             </FadeUp>
           )}
 
-          <div className="my-12 hairline" aria-hidden />
+          <div className="my-12 hairline" aria-hidden="true" />
 
           <FadeUp delay={0.3}>
             <article
               className={cn("reader-prose", poetryMode && "poetry-context")}
-              dangerouslySetInnerHTML={{ __html: body }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) }}
             />
           </FadeUp>
 

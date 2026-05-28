@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { studioEnv } from "@/lib/supabase/env";
 
 export const STUDIO_COOKIE_NAME = "studio_session";
-export const STUDIO_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+export const STUDIO_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
 export function signSessionValue(username: string, secret: string): string {
   const sig = createHmac("sha256", secret).update(username).digest("hex");

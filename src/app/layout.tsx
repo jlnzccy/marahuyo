@@ -4,7 +4,7 @@ import { fontVariables } from "@/lib/fonts";
 import { ThemeProvider, themeInitScript } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://marahuyo.local"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://marahuyoph.vercel.app"),
   title: {
     default: "marahuyo",
     template: "%s — marahuyo"
@@ -38,6 +38,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-screen antialiased">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:border focus:border-border focus:bg-canvas focus:px-4 focus:py-2 focus:font-sans focus:text-sm focus:text-ink focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-accent/60"
+        >
+          Skip to content
+        </a>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

@@ -6,19 +6,7 @@ import { ArrowUpRight, X } from "lucide-react";
 import { KindChip } from "@/components/kind-chip";
 import { ReaderContainer } from "@/components/reader-container";
 import { readBookmarks, clearBookmark, type Bookmark } from "@/lib/bookmarks";
-
-function relative(ms: number): string {
-  const delta = Date.now() - ms;
-  const m = Math.round(delta / 60_000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.round(h / 24);
-  if (d < 7) return `${d}d ago`;
-  const w = Math.round(d / 7);
-  return `${w}w ago`;
-}
+import { relativeTime } from "@/lib/format";
 
 /**
  * Reads localStorage bookmarks on mount and renders a "continue reading" rail.
@@ -70,14 +58,14 @@ export function ContinueReading() {
                 type="button"
                 onClick={() => dismiss(b.key)}
                 aria-label={`Remove ${b.title} from continue reading`}
-                className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full text-whisper opacity-0 transition-opacity hover:bg-canvas hover:text-ink group-hover:opacity-100 focus:opacity-100"
+                className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full text-whisper opacity-50 transition-opacity hover:bg-canvas hover:text-ink group-hover:opacity-100 focus:opacity-100"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
               <Link href={b.href} className="block pr-8">
                 <div className="mb-3 flex items-center gap-2">
                   <KindChip kind={b.kind} />
-                  <span className="meta">{relative(b.visitedAt)}</span>
+                  <span className="meta">{relativeTime(b.visitedAt)}</span>
                 </div>
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="font-serif text-lg font-bold leading-snug text-ink">

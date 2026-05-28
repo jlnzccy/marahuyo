@@ -26,10 +26,11 @@ export async function getStudioStats(): Promise<StudioStats> {
   /* Fetch all works — the total row count is small, so a single query
      aggregated in JS is simpler than multiple Supabase count queries. */
   const [worksRes, recentRes] = await Promise.all([
-    sb.from("works").select("status, word_count"),
+    sb.from("works").select("status, word_count").is("deleted_at", null),
     sb
       .from("works")
       .select("id, title, kind, status, updated_at")
+      .is("deleted_at", null)
       .order("updated_at", { ascending: false })
       .limit(5)
   ]);

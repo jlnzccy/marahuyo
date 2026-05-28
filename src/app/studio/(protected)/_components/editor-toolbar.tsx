@@ -60,7 +60,7 @@ function ToolButton({ onClick, active, disabled, label, icon: Icon, buttonRef }:
 }
 
 function Divider() {
-  return <span aria-hidden className="mx-1 h-5 w-px bg-border/70" />;
+  return <span aria-hidden="true" className="mx-1 h-5 w-px bg-border/70" />;
 }
 
 /* ------------------------------------------------------------------

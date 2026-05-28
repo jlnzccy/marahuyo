@@ -20,7 +20,7 @@ export function KindChip({ kind, className }: { kind: WorkKind; className?: stri
         className
       )}
     >
-      <span aria-hidden className="h-1 w-1 rounded-full bg-accent/80" />
+      <span aria-hidden="true" className="h-1 w-1 rounded-full bg-accent/80" />
       {LABELS[kind]}
     </span>
   );

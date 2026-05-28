@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { getStudioSession } from "@/lib/supabase/auth";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import type { SettingsUpdate } from "@/lib/supabase/types";
@@ -10,29 +11,54 @@ async function assertOwner() {
   if (!session?.isOwner) throw new Error("Unauthorized — owner session required.");
 }
 
-export type UpdateSettingsInput = {
-  defaultTheme?: string;
-  instagramUrl?: string | null;
-  twitterUrl?: string | null;
-  mediumUrl?: string | null;
-  githubUrl?: string | null;
-  contactEmail?: string | null;
-  portraitUrl?: string | null;
-  authorSubtitle?: string | null;
-  authorName?: string | null;
-  authorHandle?: string | null;
-  authorTagline?: string | null;
-  authorShortBio?: string | null;
-  authorBio?: string | null;
-  authorBioLong?: string | null;
-  authorLocation?: string | null;
-  aboutPlaceTitle?: string | null;
-  aboutPlaceBody?: string | null;
-  aboutPlaceQuote?: string | null;
-};
+const nullableText = (max: number) =>
+  z.string().max(max).nullable().optional();
+const nullableUrl = z
+  .string()
+  .url()
+  .max(500)
+  .nullable()
+  .optional()
+  .or(z.literal("").transform(() => null));
 
-export async function updateSettings(input: UpdateSettingsInput) {
+const updateSettingsSchema = z.object({
+  defaultTheme: z.enum(["light", "cream", "midnight"]).optional(),
+  instagramUrl: nullableUrl,
+  twitterUrl: nullableUrl,
+  mediumUrl: nullableUrl,
+  githubUrl: nullableUrl,
+  contactEmail: z
+    .string()
+    .email()
+    .max(320)
+    .nullable()
+    .optional()
+    .or(z.literal("").transform(() => null)),
+  portraitUrl: nullableUrl,
+  authorSubtitle: nullableText(500),
+  authorName: nullableText(200),
+  authorHandle: nullableText(100),
+  authorTagline: nullableText(500),
+  authorShortBio: nullableText(2000),
+  authorBio: nullableText(5000),
+  authorBioLong: nullableText(50_000),
+  authorLocation: nullableText(200),
+  aboutPlaceTitle: nullableText(200),
+  aboutPlaceBody: nullableText(20_000),
+  aboutPlaceQuote: nullableText(2000)
+});
+
+export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
+
+export async function updateSettings(rawInput: UpdateSettingsInput) {
   await assertOwner();
+  const result = updateSettingsSchema.safeParse(rawInput);
+  if (!result.success) {
+    const first = result.error.issues[0];
+    const path = first.path.length > 0 ? ` (${first.path.join(".")})` : "";
+    throw new Error(`updateSettings: ${first.message}${path}`);
+  }
+  const input = result.data;
   const supabase = getAdminSupabase();
 
   const patch: SettingsUpdate = {};

@@ -2,7 +2,7 @@
 
 Organized so you can pick up any phase in a fresh session and know exactly what to do. Items are checkboxes — tick as you finish. Each phase is independent enough to ship on its own.
 
-Last updated: 2026-05-27. Phase 0 complete. Phase 1 complete: editor + Poetry node (round-trip verified) + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum, Highcrest 'm' favicon, gradient SVG fallbacks for mock covers. Remaining Phase 3: real cover/portrait photos (manual upload via Studio). Phase 1.7 complete: universal embed picker (YouTube/Instagram/Vimeo/Spotify/TikTok), inline dialogs (PromptDialog + AlertDialog replacing all window.prompt/alert), studio overview refresh (live stats + recent activity). Favicon SVG MIME type fixed. Phase 3.6 complete: bubble menu z-30, in-editor image upload (Supabase storage via `editor/<id>` prefix), footer tagline removed, themed DatePicker, localStorage LikeButton on reader pages, homepage epigraph links to source work. Phase 4 frontend trio done: localStorage bookmarks + continue-reading rail, Web-Share button with clipboard fallback, print stylesheet.
+Last updated: 2026-05-28. Phase 0 complete. Phase 1 complete: editor + Poetry node (round-trip verified) + bubble menu + auto-save + works CRUD + cover uploads + series CMS (list/new/editor/sortable chapters) + chapter editor + drafts inbox + confirm modal + settings table & page. Phase 2 complete. Phase 3 mostly landed: sitemap, robots, RSS, OG images, Instagram embed extension, studio 404, extended work_kind enum, Highcrest 'm' favicon, gradient SVG fallbacks for mock covers. Remaining Phase 3: real cover/portrait photos (manual upload via Studio). Phase 1.7 complete: universal embed picker (YouTube/Instagram/Vimeo/Spotify/TikTok), inline dialogs (PromptDialog + AlertDialog replacing all window.prompt/alert), studio overview refresh (live stats + recent activity). Favicon SVG MIME type fixed. Phase 3.6 complete: bubble menu z-30, in-editor image upload (Supabase storage via `editor/<id>` prefix), footer tagline removed, themed DatePicker, localStorage LikeButton on reader pages, homepage epigraph links to source work. Phase 4 frontend trio done: localStorage bookmarks + continue-reading rail, Web-Share button with clipboard fallback, print stylesheet. Phase 5 🔴 critical complete: metadataBase env-aware, HTML sanitization (isomorphic-dompurify), mobile hamburger nav, login rate limiting (5/15min), README rewrite, settings RLS restricted via `settings_public` view (migration 0008). Phase 5 🟠 important complete: homepage Promise.all + React `cache()` reads, reduced-motion + `whileInView` scroll anims, three error boundaries, Zod-validated server actions (incl. reorderChapters sibling check), 7-day studio session, generated-types script + `WorkKind` single source, iframe `sandbox` enforced both at insert and at sanitize-time, storage prefix sweep on delete, sitemap static-route freshness, lean `getChapterByPath`. Phase 5 🟡 QoL pass: skip-link + `id="main-content"` everywhere, AA-contrast whisper tokens, alt-text + `aria-hidden="true"` sweep, theme-switcher radiogroup + arrow keys + focus return + reader font-size selector (sm/md/lg), CSS-only heart burst, lock-width share button, locale-aware dates via shared `lib/format.ts`, scroll threshold 240, `(site)` route group dedup, `useUploader` hook, mock-content + cover_color column dropped, picsum removed from next.config, series_status enum + studio surface (migration 0010), soft delete on works + chapters + `/studio/trash` view (migration 0011).
 
 ---
 
@@ -175,3 +175,93 @@ Things worth thinking about but **not** before Phase 1 / 2 are done.
 2. Read `PLAN.md` first (architecture), then this file.
 3. Pick an unchecked item from the earliest non-empty phase.
 4. Stay in scope. When tempted to refactor across phases, write the temptation here as a Phase 4 item and move on.
+
+---
+
+## Phase 5 — Review punchlist (2026-05-28)
+
+Consolidated from a full codebase review (internal audit + external review). Items already done elsewhere have been pruned. Severity: 🔴 Critical · 🟠 Important · 🟡 Quality-of-life · 🔵 Feature ideas.
+
+### 🔴 Critical (security · correctness · SEO)
+
+- [x] **Fix `metadataBase`.** `src/app/layout.tsx:7` uses `https://marahuyo.local` — breaks OG/canonical URLs in production. Replace with `new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://marahuyoph.vercel.app")`.
+- [x] **Sanitize reader HTML.** `src/components/reader-shell.tsx:136`, `src/app/about/page.tsx:56`, `src/app/about/page.tsx:71` all render DB content via `dangerouslySetInnerHTML` with no sanitization. Install `isomorphic-dompurify` or `sanitize-html`; sanitize on save (server action) or on render. Whitelist tags TipTap produces.
+- [x] **Mobile navigation.** `src/components/site-header.tsx:23` — nav is `hidden sm:flex`; no fallback on small screens. Add a hamburger button (`sm:hidden`) opening a Framer Motion slide-out or full-screen drawer. Escape closes, focus traps inside, scroll locked while open.
+- [x] **Login rate limiting.** `src/app/studio/actions.ts` `signIn` has zero brute-force protection. In-memory `Map<ip, { count, resetAt }>` with 5/15min lockout for v1; Vercel KV or Upstash for production resilience.
+- [x] **Update README.** Stack table still says "Supabase magic-link", references dead `middleware.ts`, calls CMS "scaffolded". Rewrite for current state (env-HMAC auth, completed CMS, real data wiring).
+- [x] **Restrict `settings` public-read RLS.** `supabase/migrations/0003_settings.sql:35-38` exposes `contact_email` and all rows to anon. Split sensitive columns into a private table, or change policy to expose only safe columns via a view.
+
+### 🟠 Important (perf · a11y · type-safety · data integrity) ✅ DONE
+
+- [x] **Parallelize homepage queries.** Four awaits in `src/app/page.tsx` wrapped in `Promise.all`.
+- [x] **Wrap read APIs in `cache()`.** `src/lib/works.ts` + `src/lib/settings.ts` — `getStandaloneBySlug`, `getSeriesBySlug`, `getChapter`, `getFeaturedWork`, `getRecentDispatches`, `getRandomEpigraph`, `getAllPublishedWorks`, `getSiteSettings` all wrapped in React `cache()`.
+- [x] **`prefers-reduced-motion` support.** `src/components/motion.tsx` uses Framer's `useReducedMotion()` and returns a plain `<div>` when true. `globals.css` adds a `@media (prefers-reduced-motion: reduce)` block that flattens animation/transition durations and the heart-burst keyframes.
+- [x] **`whileInView` for scroll animations.** `FadeUp` / `FadeIn` / `Stagger` now use `whileInView` with `viewport={{ once: true, margin: "-10%" }}`.
+- [x] **Error boundaries.** Added `src/app/error.tsx` (catch-all themed error), `src/app/read/error.tsx`, and `src/app/series/error.tsx`. Each surfaces `error.digest`, a "Try again" button, and a return-home link.
+- [x] **Zod-validate server actions.** `src/app/studio/(protected)/_actions/works.ts` defines `updateWorkSchema`, `updateChapterSchema`, `reorderChaptersSchema`; `_actions/settings.ts` defines `updateSettingsSchema`. `reorderChapters` now (a) rejects duplicate ids via Zod `refine` and (b) re-queries the DB to confirm every id belongs to the given `series_id` before reordering.
+- [x] **Shorten studio session.** `STUDIO_COOKIE_MAX_AGE` 30 days → 7 days.
+- [x] **Generated Supabase types.** Added `npm run gen-types` (`supabase gen types typescript ... > src/lib/supabase/generated.ts`). `WorkKind` now re-exported from the single source `@/types/content`. `id` removed from `WorkUpdate` and `ChapterUpdate` (it's only the WHERE clause, never the patch).
+- [x] **Sync `SiteSettings` type.** Extracted `SiteSettingsAuthor` + `SiteSettingsAboutPlace` subtypes. Added a compile-time exhaustiveness guard (`_AssertAllMapped`) that fails type-check if a future `SettingsRow` column isn't mapped through `getSiteSettings()`.
+- [x] **Iframe sandbox.** `embed-node.ts` rendered `<iframe>` adds `sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"`. `src/lib/sanitize.ts` registers a DOMPurify `afterSanitizeAttributes` hook that forces the same sandbox + `loading=lazy` + `referrerpolicy` onto every iframe in published HTML (covers legacy embeds saved before this fix).
+- [x] **Storage cleanup on delete.** `_actions/works.ts` adds `removeCoversPrefix` + `removeWorkStorage`. `deleteWork` sweeps `covers/<id>/` and `covers/editor/<id>/`; for series, also sweeps each chapter's storage. `deleteChapter` does the same for the chapter.
+- [x] **Sitemap freshness.** `lastModified` dropped from static-route entries in `src/app/sitemap.ts` — only DB-backed entries get a timestamp.
+- [x] **Chapter N+1.** Added `getChapterByPath(seriesSlug, chapterSlug)` to `src/lib/works.ts` — single query with two joins (chapter row + sibling slugs/numbers only, no sibling bodies). `src/app/series/[slug]/[chapter]/page.tsx` switched to it for prev/next nav.
+
+### 🟡 Quality-of-life
+
+- [x] **Skip-to-content link.** `src/app/layout.tsx` body now leads with `sr-only focus:not-sr-only` anchor → `#main-content`. Every `<main>` in the public app (home, works, about, contact, series index, reader-shell, studio chrome, error/not-found) carries the id.
+- [x] **WCAG contrast.** `--whisper` lifted on all three themes to clear AA (light 108/108/116, cream 114/108/98, midnight 156/152/144). Theme-switcher focus rings now use solid `accent` instead of `accent/60` so they stay visible.
+- [x] **Featured-card a11y.** `src/components/featured-card.tsx` image is now a plain `<div>` (no extra Link / `tabIndex={-1}`). The text-side CTA is the single tab stop; alt text describes the cover.
+- [x] **Alt text.** `reader-shell.tsx`, `work-row.tsx`, `featured-card.tsx` now render `alt={\`Cover for ${title}\`}`. Author portrait alts already read from settings.
+- [x] **`aria-hidden` boolean.** Every JSX `aria-hidden` shorthand swapped to `aria-hidden="true"` (kind-chip, featured-card, like-button, theme-switcher, nav-link, reading-progress, reader-shell, save-indicator, hairlines on /works, /about, /contact, /series, work + chapter editors, series editor, editor toolbar divider).
+- [x] **Theme switcher semantics.** Listbox → `radiogroup`/`radio` with roving focus (ArrowUp/Down/Left/Right + Home/End), focus returns to trigger on close, and a parallel reading-size `radiogroup`.
+- [x] **Orphaned "Type" section.** Wired to a real reader-size selector — sm (17px) / md (19px, default) / lg (21px). Persists in `marahuyo:reader-size`, hydrated by the same `themeInitScript` to avoid flash. CSS lives in `globals.css` keyed off `html[data-reading-size]`.
+- [ ] **Skeleton/blur for images.** `src/components/work-row.tsx:31-38` no `placeholder="blur"`. Generate blurhash on upload or use static `bg-surface` fallback.
+- [x] **Locale-aware dates.** New `src/lib/format.ts` exposes `formatDate` (no hard-coded `en-US`) and `relativeTime` (`Intl.RelativeTimeFormat`, handles "just now" natively). `work-row`, `continue-reading`, studio overview + /studio/works + /studio/series + /studio/drafts + /studio/trash all use it.
+- [x] **Like-burst CSS-only.** `like-button.tsx` no longer mounts 10 particle spans per click — it toggles `data-burst="true"` and `globals.css` paints the 10-dot ring via a single `::before` with a multi-stop `box-shadow` and one `heart-particle-ring` keyframe.
+- [x] **Share-button width lock.** Trigger is now a fixed `h-11 w-11` button; the "copied / shared" pill is an absolutely-positioned `aria-live` chip below it, so the button never reflows.
+- [x] **Continue-reading dismiss visible.** Default opacity bumped 0 → 50 so the X is reachable on touch; still goes 100 on hover/focus.
+- [x] **Time-ago: "just now".** Replaced bespoke ladders with `Intl.RelativeTimeFormat` via `relativeTime()`.
+- [x] **Series status column.** Migration `0010_series_status.sql` adds `series_status enum('ongoing','completed','hiatus') not null default 'ongoing'`. Wired through types → `Series.seriesStatus` → `getSeriesBySlug` → `/series/[slug]` (replaces the hard-coded "ongoing") → SeriesEditor sidebar radiogroup (auto-saves).
+- [x] **Page layout dedup.** Public chrome moved into `src/app/(site)/layout.tsx`. `/works`, `/about`, `/contact` now live under the group and render only their `<main>` — SiteHeader, SiteFooter, ThemeSwitcher come from the shared layout.
+- [ ] **Slug i18n.** `src/lib/slug.ts` strips CJK/emoji. Acceptable but worth a comment so it isn't surprising. Optional: keep CJK via `\p{Letter}` Unicode property.
+- [x] **Soft delete.** Migration `0011_soft_delete.sql` adds `deleted_at` to `works` + `chapters` with matching indexes. Every public read in `src/lib/works.ts` filters `deleted_at is null`; the studio Works / Series / Drafts / overview-stats queries do the same. `deleteWork` / `deleteChapter` now soft-delete; `restoreWork` / `restoreChapter` / `purgeWork` / `purgeChapter` added. New `/studio/trash` route with restore + permanent-remove (sweeps storage). No auto-purge cron — manual only.
+- [ ] **Poetry-block keyboard exit.** `src/app/studio/(protected)/_components/extensions/poetry-node.ts` — Enter on empty trailing line exits to a new paragraph. Or bind `Mod-Enter` to exit.
+- [x] **Duplicate uploaders.** Shared `useUploader({ upload, formFields, onChange })` hook in `_components/use-uploader.ts`; `cover-uploader.tsx` + `image-uploader.tsx` both use it. `relativeTime` moved to `lib/format.ts` (3 in-place duplicates removed).
+- [x] **Dead `mock-content.ts` exports.** File deleted. `AUTHOR.portraitUrl` gradient fallback inlined as `FALLBACK_PORTRAIT` in `lib/settings.ts`.
+- [x] **`cover_color` column.** Migration `0009_drop_cover_color.sql` drops the column. References pruned from `WorkRow` / `WorkInsert` / `WorkUpdate`, `Series` type, `mapSeries`, `updateWorkSchema`, the studio series query, and `mock-content.ts`.
+- [x] **`picsum.photos` in `next.config`.** Removed `picsum.photos` and `fastly.picsum.photos` from `next.config.mjs` `remotePatterns`. Only Supabase + Unsplash remain.
+- [ ] **`tsconfig.skipLibCheck`.** Hides Supabase type errors. Try removing; fix anything that surfaces.
+- [x] **Aggressive scroll-aware header.** `src/components/site-header.tsx` threshold bumped 120 → 240 so the header sticks around longer on shallow scrolls.
+- [x] **WorkKind enum comment.** `0004_extend_work_kind.sql` comment rewritten to list the full final enum (poem/essay/oneshot/series/article/story/note) and the picker offerings.
+- [ ] **Reader-actions placement.** `like-button` + `share-button` cramped under prose. Consider floating side-rail on desktop, sticky bar on mobile.
+
+### 🔵 Feature ideas (defer, scope per session)
+
+- [ ] **Full-text search.** `tsvector` column on `works.title || excerpt || body`, GIN index, `/search` route with debounced input + result snippets.
+- [ ] **Table of contents.** Server-parse `<h2>`/`<h3>` from body; render sticky sidebar (desktop) + collapsible top section (mobile). Auto-scroll-spy.
+- [ ] **Reading position resume.** Extend `bookmarks.ts` with `scrollPercent`; offer "Continue from 47%" on rail click.
+- [ ] **Version history.** `work_versions(work_id, body, saved_at)`; capture on each publish; restore button in studio.
+- [ ] **Tag filters.** Tags currently decorative. Make clickable → `/works?tag=...`; archive filter chips.
+- [ ] **Auto theme.** Add "Auto" option following `prefers-color-scheme`. Default for first-time visitors.
+- [ ] **Explicit `featured` flag.** Boolean on `works`; `getFeaturedWork()` picks `featured=true` first, falls back to most recent. Toggle in studio.
+- [ ] **Scheduled publishing.** `scheduled_at` column + Vercel cron / edge function to flip draft → published.
+- [ ] **Bookmarks/likes sync.** Currently localStorage-only. Anonymous device-id + Supabase table; survives cache clear. Path forward if real accounts ever added.
+- [ ] **Bulk actions in studio.** Multi-select rows for publish/unpublish/delete/tag in `/studio/works` and `/studio/drafts`.
+- [ ] **Tag autocomplete.** Suggest existing tags as user types in editor sidebar.
+- [ ] **Inline draft→publish toggles.** `/studio/drafts` row-level publish without drilling in.
+- [ ] **Chapter excerpt + subtitle parity.** Chapter editor missing fields works have. Migration + form.
+- [ ] **RSS link in footer.** `/feed.xml` exists, nothing surfaces it in UI.
+- [ ] **Image dedup.** Hash uploads, reuse existing path if hash matches.
+- [ ] **Save-success toast + last-saved tooltip.** Make SaveIndicator more legible.
+- [ ] **Reader font-size control.** Wire the orphaned "Type" section in theme switcher.
+
+---
+
+### Top 5 to do first (recommended order)
+
+1. `metadataBase` fix — one-line change, unblocks correct OG/canonical immediately.
+2. Sanitize reader HTML — security; do before next public link share.
+3. Mobile nav — basic usability; current site is half-broken on phone.
+4. Parallelize homepage queries + wrap reads in `cache()` — perf, two small PRs.
+5. Add `error.tsx` + `prefers-reduced-motion` — a11y baseline.

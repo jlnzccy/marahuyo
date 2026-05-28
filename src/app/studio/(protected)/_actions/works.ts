@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { getStudioSession } from "@/lib/supabase/auth";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { slugify, withSuffix } from "@/lib/slug";
@@ -14,6 +15,19 @@ import type {
   ChapterUpdate,
   ChapterRow
 } from "@/lib/supabase/types";
+
+const UUID = z.string().uuid("Invalid id");
+
+/** Throw a user-facing message instead of leaking the raw ZodError shape. */
+function parseInput<T>(schema: z.ZodType<T>, input: unknown, label: string): T {
+  const result = schema.safeParse(input);
+  if (!result.success) {
+    const first = result.error.issues[0];
+    const path = first.path.length > 0 ? ` (${first.path.join(".")})` : "";
+    throw new Error(`${label}: ${first.message}${path}`);
+  }
+  return result.data;
+}
 
 /**
  * Every action in this file uses the admin (secret-key) Supabase client which
@@ -53,6 +67,31 @@ async function getSeriesSlug(seriesId: string): Promise<string | null> {
     .maybeSingle()
     .returns<Pick<WorkRow, "slug"> | null>();
   return data?.slug ?? null;
+}
+
+/**
+ * Best-effort removal of every object directly under a prefix in `covers/`.
+ * Stays one level deep — file uploads in this project are flat per-prefix.
+ * Errors are swallowed: a stale storage file is harmless next to a successful
+ * row delete.
+ */
+async function removeCoversPrefix(prefix: string): Promise<void> {
+  if (!prefix || prefix.includes("..")) return;
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase.storage.from("covers").list(prefix, {
+    limit: 1000
+  });
+  if (error || !data || data.length === 0) return;
+  const paths = data.map((f) => `${prefix}/${f.name}`);
+  await supabase.storage.from("covers").remove(paths);
+}
+
+/** Sweep every storage prefix tied to a work id (cover + inline editor uploads). */
+async function removeWorkStorage(workId: string): Promise<void> {
+  await Promise.all([
+    removeCoversPrefix(workId),
+    removeCoversPrefix(`editor/${workId}`)
+  ]);
 }
 
 // =============================================================================
@@ -107,23 +146,31 @@ export async function createWork({ kind, title }: CreateWorkInput) {
   redirect(`/studio/works/${data.id}`);
 }
 
-export type UpdateWorkInput = {
-  id: string;
-  title?: string;
-  subtitle?: string | null;
-  excerpt?: string;
-  body?: string;
-  tags?: string[];
-  coverImage?: string | null;
-  coverColor?: string | null;
-  poetryMode?: boolean;
-  wordCount?: number;
-  readingMinutes?: number;
-  publishedAt?: string | null;
-};
+const updateWorkSchema = z.object({
+  id: UUID,
+  title: z.string().max(300).optional(),
+  subtitle: z.string().max(500).nullable().optional(),
+  excerpt: z.string().max(2000).optional(),
+  body: z.string().max(2_000_000).optional(),
+  tags: z.array(z.string().min(1).max(60)).max(40).optional(),
+  coverImage: z.string().url().max(2000).nullable().optional(),
+  poetryMode: z.boolean().optional(),
+  wordCount: z.number().int().min(0).max(10_000_000).optional(),
+  readingMinutes: z.number().int().min(0).max(100_000).optional(),
+  seriesStatus: z.enum(["ongoing", "completed", "hiatus"]).optional(),
+  publishedAt: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .nullable()
+    .optional()
+});
 
-export async function updateWork(input: UpdateWorkInput) {
+export type UpdateWorkInput = z.infer<typeof updateWorkSchema>;
+
+export async function updateWork(rawInput: UpdateWorkInput) {
   await assertOwner();
+  const input = parseInput(updateWorkSchema, rawInput, "updateWork");
   const supabase = getAdminSupabase();
 
   const patch: WorkUpdate = {};
@@ -133,10 +180,10 @@ export async function updateWork(input: UpdateWorkInput) {
   if (input.body !== undefined) patch.body = input.body;
   if (input.tags !== undefined) patch.tags = input.tags;
   if (input.coverImage !== undefined) patch.cover_image = input.coverImage;
-  if (input.coverColor !== undefined) patch.cover_color = input.coverColor;
   if (input.poetryMode !== undefined) patch.poetry_mode = input.poetryMode;
   if (input.wordCount !== undefined) patch.word_count = input.wordCount;
   if (input.readingMinutes !== undefined) patch.reading_minutes = input.readingMinutes;
+  if (input.seriesStatus !== undefined) patch.series_status = input.seriesStatus;
   if (input.publishedAt !== undefined) patch.published_at = input.publishedAt;
 
   const { data: rawData, error } = await supabase
@@ -206,23 +253,112 @@ export async function unpublishWork(id: string) {
   return { ok: true as const };
 }
 
+/**
+ * Soft delete — sets `deleted_at` on the work (and cascades to its chapters
+ * when it's a series). Row + storage stay around until permanent purge from
+ * the Trash view. All public read APIs filter `deleted_at is null`.
+ */
 export async function deleteWork(id: string) {
   await assertOwner();
   const supabase = getAdminSupabase();
 
-  const { data: rawData, error } = await supabase
-    .from("works")
-    .delete()
-    .eq("id", id)
-    .select("slug")
-    .single();
-  const data = rawData as Pick<WorkRow, "slug"> | null;
+  const now = new Date().toISOString();
 
+  const { data: existing } = await supabase
+    .from("works")
+    .select("kind, slug")
+    .eq("id", id)
+    .maybeSingle()
+    .returns<Pick<WorkRow, "kind" | "slug"> | null>();
+
+  const patch: WorkUpdate = { deleted_at: now };
+  const { error } = await supabase
+    .from("works")
+    .update(patch as never)
+    .eq("id", id);
   if (error) throw new Error(`Failed to delete work: ${error.message}`);
-  revalidateReadingSurfaces(data?.slug ?? null);
+
+  if (existing?.kind === "series") {
+    const chapPatch: ChapterUpdate = { deleted_at: now };
+    const { error: chapErr } = await supabase
+      .from("chapters")
+      .update(chapPatch as never)
+      .eq("series_id", id)
+      .is("deleted_at", null);
+    if (chapErr) {
+      throw new Error(`Failed to delete series chapters: ${chapErr.message}`);
+    }
+  }
+
+  revalidateReadingSurfaces(existing?.slug ?? null);
   revalidatePath("/studio/works");
   revalidatePath("/studio/series");
+  revalidatePath("/studio/trash");
   redirect("/studio/works");
+}
+
+export async function restoreWork(id: string) {
+  await assertOwner();
+  const supabase = getAdminSupabase();
+
+  const patch: WorkUpdate = { deleted_at: null };
+  const { data: rawData, error } = await supabase
+    .from("works")
+    .update(patch as never)
+    .eq("id", id)
+    .select("slug, kind, status")
+    .single();
+  const row = rawData as Pick<WorkRow, "slug" | "kind" | "status"> | null;
+  if (error) throw new Error(`Failed to restore work: ${error.message}`);
+
+  if (row?.kind === "series") {
+    const chapPatch: ChapterUpdate = { deleted_at: null };
+    await supabase
+      .from("chapters")
+      .update(chapPatch as never)
+      .eq("series_id", id);
+  }
+
+  if (row?.status === "published") revalidateReadingSurfaces(row.slug);
+  revalidatePath("/studio/works");
+  revalidatePath("/studio/series");
+  revalidatePath("/studio/trash");
+  return { ok: true as const };
+}
+
+/**
+ * Hard delete — only callable from the Trash view. Removes the DB row +
+ * sweeps storage. Once gone, gone.
+ */
+export async function purgeWork(id: string) {
+  await assertOwner();
+  const supabase = getAdminSupabase();
+
+  const { data: existing } = await supabase
+    .from("works")
+    .select("kind, slug")
+    .eq("id", id)
+    .maybeSingle()
+    .returns<Pick<WorkRow, "kind" | "slug"> | null>();
+
+  let chapterIds: string[] = [];
+  if (existing?.kind === "series") {
+    const { data: chs } = await supabase
+      .from("chapters")
+      .select("id")
+      .eq("series_id", id);
+    chapterIds = ((chs ?? []) as Pick<ChapterRow, "id">[]).map((c) => c.id);
+  }
+
+  const { error } = await supabase.from("works").delete().eq("id", id);
+  if (error) throw new Error(`Failed to purge work: ${error.message}`);
+
+  await removeWorkStorage(id);
+  await Promise.all(chapterIds.map((cid) => removeWorkStorage(cid)));
+
+  revalidateReadingSurfaces(existing?.slug ?? null);
+  revalidatePath("/studio/trash");
+  return { ok: true as const };
 }
 
 // =============================================================================
@@ -280,20 +416,28 @@ export async function createChapter(seriesId: string, title: string) {
   redirect(`/studio/series/${seriesId}/chapters/${data.id}`);
 }
 
-export type UpdateChapterInput = {
-  id: string;
-  title?: string;
-  subtitle?: string | null;
-  body?: string;
-  poetryMode?: boolean;
-  coverImage?: string | null;
-  wordCount?: number;
-  readingMinutes?: number;
-  publishedAt?: string | null;
-};
+const updateChapterSchema = z.object({
+  id: UUID,
+  title: z.string().max(300).optional(),
+  subtitle: z.string().max(500).nullable().optional(),
+  body: z.string().max(2_000_000).optional(),
+  poetryMode: z.boolean().optional(),
+  coverImage: z.string().url().max(2000).nullable().optional(),
+  wordCount: z.number().int().min(0).max(10_000_000).optional(),
+  readingMinutes: z.number().int().min(0).max(100_000).optional(),
+  publishedAt: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .nullable()
+    .optional()
+});
 
-export async function updateChapter(input: UpdateChapterInput) {
+export type UpdateChapterInput = z.infer<typeof updateChapterSchema>;
+
+export async function updateChapter(rawInput: UpdateChapterInput) {
   await assertOwner();
+  const input = parseInput(updateChapterSchema, rawInput, "updateChapter");
   const supabase = getAdminSupabase();
 
   const patch: ChapterUpdate = {};
@@ -385,6 +529,54 @@ export async function deleteChapter(id: string) {
   await assertOwner();
   const supabase = getAdminSupabase();
 
+  const patch: ChapterUpdate = { deleted_at: new Date().toISOString() };
+  const { data: rawData, error } = await supabase
+    .from("chapters")
+    .update(patch as never)
+    .eq("id", id)
+    .select("slug, series_id")
+    .single();
+  const data = rawData as Pick<ChapterRow, "slug" | "series_id"> | null;
+
+  if (error) throw new Error(`Failed to delete chapter: ${error.message}`);
+
+  if (data) {
+    const seriesSlug = await getSeriesSlug(data.series_id);
+    revalidateSeriesSurfaces(seriesSlug, data.slug);
+    revalidatePath(`/studio/series/${data.series_id}`);
+    revalidatePath("/studio/trash");
+    redirect(`/studio/series/${data.series_id}`);
+  }
+  return { ok: true as const };
+}
+
+export async function restoreChapter(id: string) {
+  await assertOwner();
+  const supabase = getAdminSupabase();
+
+  const patch: ChapterUpdate = { deleted_at: null };
+  const { data: rawData, error } = await supabase
+    .from("chapters")
+    .update(patch as never)
+    .eq("id", id)
+    .select("slug, series_id, status")
+    .single();
+  const data = rawData as Pick<ChapterRow, "slug" | "series_id" | "status"> | null;
+  if (error) throw new Error(`Failed to restore chapter: ${error.message}`);
+
+  if (data?.status === "published") {
+    const seriesSlug = await getSeriesSlug(data.series_id);
+    revalidateSeriesSurfaces(seriesSlug, data.slug);
+  }
+  revalidatePath(`/studio/series/${data?.series_id ?? ""}`);
+  revalidatePath("/studio/trash");
+  return { ok: true as const };
+}
+
+export async function purgeChapter(id: string) {
+  await assertOwner();
+  const supabase = getAdminSupabase();
+
   const { data: rawData, error } = await supabase
     .from("chapters")
     .delete()
@@ -392,14 +584,15 @@ export async function deleteChapter(id: string) {
     .select("slug, series_id")
     .single();
   const data = rawData as Pick<ChapterRow, "slug" | "series_id"> | null;
+  if (error) throw new Error(`Failed to purge chapter: ${error.message}`);
 
-  if (error) throw new Error(`Failed to delete chapter: ${error.message}`);
+  await removeWorkStorage(id);
+
   if (data) {
     const seriesSlug = await getSeriesSlug(data.series_id);
     revalidateSeriesSurfaces(seriesSlug, data.slug);
-    revalidatePath(`/studio/series/${data.series_id}`);
-    redirect(`/studio/series/${data.series_id}`);
   }
+  revalidatePath("/studio/trash");
   return { ok: true as const };
 }
 
@@ -551,23 +744,50 @@ export async function uploadStudioImage(formData: FormData): Promise<UploadImage
   return { ok: true, url: publicData.publicUrl };
 }
 
+const reorderChaptersSchema = z.object({
+  seriesId: UUID,
+  orderedIds: z
+    .array(UUID)
+    .min(1, "Need at least one chapter id")
+    .max(1000)
+    .refine((ids) => new Set(ids).size === ids.length, "Duplicate chapter id")
+});
+
 export async function reorderChapters(seriesId: string, orderedIds: string[]) {
   await assertOwner();
+  const input = parseInput(
+    reorderChaptersSchema,
+    { seriesId, orderedIds },
+    "reorderChapters"
+  );
   const supabase = getAdminSupabase();
 
-  // One UPDATE per row. For small chapter counts (the only realistic case here)
-  // this is dramatically simpler than a CTE bulk update and the round-trips are
-  // negligible. If this ever becomes hot, switch to an RPC.
-  for (let i = 0; i < orderedIds.length; i++) {
+  // Verify every id actually belongs to this series — never trust a client list.
+  const { data: rawExisting, error: fetchError } = await supabase
+    .from("chapters")
+    .select("id")
+    .eq("series_id", input.seriesId)
+    .in("id", input.orderedIds);
+  if (fetchError) {
+    throw new Error(`reorderChapters: ${fetchError.message}`);
+  }
+  const existing = (rawExisting ?? []) as Pick<ChapterRow, "id">[];
+  if (existing.length !== input.orderedIds.length) {
+    throw new Error(
+      "reorderChapters: one or more chapter ids do not belong to this series"
+    );
+  }
+
+  for (let i = 0; i < input.orderedIds.length; i++) {
     const patch: ChapterUpdate = { number: i + 1 };
     const { error } = await supabase
       .from("chapters")
       .update(patch as never)
-      .eq("id", orderedIds[i])
-      .eq("series_id", seriesId);
+      .eq("id", input.orderedIds[i])
+      .eq("series_id", input.seriesId);
     if (error) throw new Error(`Failed to reorder chapters: ${error.message}`);
   }
 
-  revalidatePath(`/studio/series/${seriesId}`);
+  revalidatePath(`/studio/series/${input.seriesId}`);
   return { ok: true as const };
 }

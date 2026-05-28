@@ -163,6 +163,7 @@ export const EmbedNode = Node.create({
         {
           src: embedSrc,
           loading: "lazy",
+          sandbox: "allow-scripts allow-same-origin allow-presentation allow-popups",
           allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
           allowfullscreen: "true",
           frameborder: "0",

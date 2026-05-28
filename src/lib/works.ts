@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseEnv } from "@/lib/supabase/env";
 import type { ChapterRow, Database, WorkRow } from "@/lib/supabase/types";
@@ -46,13 +47,13 @@ function mapSeries(row: WorkRow, chapters: Chapter[] = []): Series {
     subtitle: row.subtitle ?? undefined,
     kind: "series",
     status: row.status,
+    seriesStatus: row.series_status,
     publishedAt: row.published_at ?? undefined,
     tags: row.tags,
     excerpt: row.excerpt,
     wordCount: row.word_count,
     readingMinutes: row.reading_minutes,
     coverImage: row.cover_image ?? undefined,
-    coverColor: row.cover_color ?? undefined,
     chapters
   };
 }
@@ -78,31 +79,35 @@ function mapWork(row: WorkRow): AnyWork {
   return row.kind === "series" ? mapSeries(row) : mapStandalone(row);
 }
 
-export async function getAllPublishedWorks(): Promise<AnyWork[]> {
+export const getAllPublishedWorks = cache(async (): Promise<AnyWork[]> => {
   const sb = getPublicSupabase();
   const { data, error } = await sb
     .from("works")
     .select("*")
     .eq("status", "published")
+    .is("deleted_at", null)
     .order("published_at", { ascending: false, nullsFirst: false });
   if (error) throw new Error(`getAllPublishedWorks: ${error.message}`);
   return ((data ?? []) as WorkRow[]).map(mapWork);
-}
+});
 
-export async function getStandaloneBySlug(slug: string): Promise<StandaloneWork | null> {
-  const sb = getPublicSupabase();
-  const { data, error } = await sb
-    .from("works")
-    .select("*")
-    .eq("slug", slug)
-    .neq("kind", "series")
-    .eq("status", "published")
-    .maybeSingle();
-  if (error) throw new Error(`getStandaloneBySlug(${slug}): ${error.message}`);
-  return data ? mapStandalone(data as WorkRow) : null;
-}
+export const getStandaloneBySlug = cache(
+  async (slug: string): Promise<StandaloneWork | null> => {
+    const sb = getPublicSupabase();
+    const { data, error } = await sb
+      .from("works")
+      .select("*")
+      .eq("slug", slug)
+      .neq("kind", "series")
+      .eq("status", "published")
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (error) throw new Error(`getStandaloneBySlug(${slug}): ${error.message}`);
+    return data ? mapStandalone(data as WorkRow) : null;
+  }
+);
 
-export async function getSeriesBySlug(slug: string): Promise<Series | null> {
+export const getSeriesBySlug = cache(async (slug: string): Promise<Series | null> => {
   const sb = getPublicSupabase();
   const { data, error } = await sb
     .from("works")
@@ -110,54 +115,123 @@ export async function getSeriesBySlug(slug: string): Promise<Series | null> {
     .eq("slug", slug)
     .eq("kind", "series")
     .eq("status", "published")
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw new Error(`getSeriesBySlug(${slug}): ${error.message}`);
   if (!data) return null;
   const row = data as WorkRow & { chapters: ChapterRow[] | null };
   const chapters = (row.chapters ?? [])
+    .filter((c) => c.deleted_at === null)
     .map(mapChapter)
     .sort((a, b) => a.number - b.number);
   return mapSeries(row, chapters);
-}
+});
 
-export async function getChapter(
-  seriesSlug: string,
-  chapterSlug: string
-): Promise<{ series: Series; chapter: Chapter } | null> {
-  const series = await getSeriesBySlug(seriesSlug);
-  if (!series) return null;
-  const chapter = series.chapters.find(
-    (c) => c.slug === chapterSlug && c.status === "published"
-  );
-  if (!chapter) return null;
-  return { series, chapter };
-}
+export const getChapter = cache(
+  async (
+    seriesSlug: string,
+    chapterSlug: string
+  ): Promise<{ series: Series; chapter: Chapter } | null> => {
+    const series = await getSeriesBySlug(seriesSlug);
+    if (!series) return null;
+    const chapter = series.chapters.find(
+      (c) => c.slug === chapterSlug && c.status === "published"
+    );
+    if (!chapter) return null;
+    return { series, chapter };
+  }
+);
 
-export async function getRecentDispatches(limit: number): Promise<StandaloneWork[]> {
+/**
+ * Lightweight chapter fetch: pulls just the chapter row + parent series row
+ * (no sibling bodies) and the sibling slugs/numbers needed for prev/next nav.
+ * Replaces the N+1-ish `getChapter()` for chapter page render.
+ */
+export type ChapterSibling = Pick<Chapter, "id" | "slug" | "number" | "title">;
+
+export type ChapterByPath = {
+  series: Series;
+  chapter: Chapter;
+  siblings: ChapterSibling[];
+};
+
+export const getChapterByPath = cache(
+  async (
+    seriesSlug: string,
+    chapterSlug: string
+  ): Promise<ChapterByPath | null> => {
+    const sb = getPublicSupabase();
+    const { data, error } = await sb
+      .from("works")
+      .select(
+        "*, chapter:chapters!inner(*), siblings:chapters(id, slug, number, title, status, deleted_at)"
+      )
+      .eq("slug", seriesSlug)
+      .eq("kind", "series")
+      .eq("status", "published")
+      .is("deleted_at", null)
+      .eq("chapter.slug", chapterSlug)
+      .eq("chapter.status", "published")
+      .is("chapter.deleted_at", null)
+      .maybeSingle();
+    if (error) {
+      throw new Error(
+        `getChapterByPath(${seriesSlug}/${chapterSlug}): ${error.message}`
+      );
+    }
+    if (!data) return null;
+    const row = data as WorkRow & {
+      chapter: ChapterRow[] | ChapterRow;
+      siblings:
+        | (Pick<ChapterRow, "id" | "slug" | "number" | "title"> & {
+            status: string;
+            deleted_at: string | null;
+          })[]
+        | null;
+    };
+    const chapterRow = Array.isArray(row.chapter) ? row.chapter[0] : row.chapter;
+    if (!chapterRow) return null;
+
+    const siblings: ChapterSibling[] = (row.siblings ?? [])
+      .filter((s) => s.status === "published" && s.deleted_at === null)
+      .map((s) => ({ id: s.id, slug: s.slug, number: s.number, title: s.title }))
+      .sort((a, b) => a.number - b.number);
+
+    const series = mapSeries(row, []);
+    const chapter = mapChapter(chapterRow);
+    return { series, chapter, siblings };
+  }
+);
+
+export const getRecentDispatches = cache(
+  async (limit: number): Promise<StandaloneWork[]> => {
+    const sb = getPublicSupabase();
+    const { data, error } = await sb
+      .from("works")
+      .select("*")
+      .eq("status", "published")
+      .neq("kind", "series")
+      .is("deleted_at", null)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(limit);
+    if (error) throw new Error(`getRecentDispatches: ${error.message}`);
+    return ((data ?? []) as WorkRow[]).map(mapStandalone);
+  }
+);
+
+export const getFeaturedWork = cache(async (): Promise<AnyWork | null> => {
   const sb = getPublicSupabase();
   const { data, error } = await sb
     .from("works")
     .select("*")
     .eq("status", "published")
-    .neq("kind", "series")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .limit(limit);
-  if (error) throw new Error(`getRecentDispatches: ${error.message}`);
-  return ((data ?? []) as WorkRow[]).map(mapStandalone);
-}
-
-export async function getFeaturedWork(): Promise<AnyWork | null> {
-  const sb = getPublicSupabase();
-  const { data, error } = await sb
-    .from("works")
-    .select("*")
-    .eq("status", "published")
+    .is("deleted_at", null)
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(`getFeaturedWork: ${error.message}`);
   return data ? mapWork(data as WorkRow) : null;
-}
+});
 
 export async function getPublishedStandaloneSlugs(): Promise<string[]> {
   const sb = getPublicSupabase();
@@ -165,7 +239,8 @@ export async function getPublishedStandaloneSlugs(): Promise<string[]> {
     .from("works")
     .select("slug")
     .eq("status", "published")
-    .neq("kind", "series");
+    .neq("kind", "series")
+    .is("deleted_at", null);
   if (error) throw new Error(`getPublishedStandaloneSlugs: ${error.message}`);
   return ((data ?? []) as Pick<WorkRow, "slug">[]).map((r) => r.slug);
 }
@@ -176,7 +251,8 @@ export async function getPublishedSeriesSlugs(): Promise<string[]> {
     .from("works")
     .select("slug")
     .eq("status", "published")
-    .eq("kind", "series");
+    .eq("kind", "series")
+    .is("deleted_at", null);
   if (error) throw new Error(`getPublishedSeriesSlugs: ${error.message}`);
   return ((data ?? []) as Pick<WorkRow, "slug">[]).map((r) => r.slug);
 }
@@ -188,7 +264,8 @@ export async function getPublishedWorkUpdates(): Promise<
   const { data, error } = await sb
     .from("works")
     .select("slug, kind, updated_at")
-    .eq("status", "published");
+    .eq("status", "published")
+    .is("deleted_at", null);
   if (error) throw new Error(`getPublishedWorkUpdates: ${error.message}`);
   return ((data ?? []) as Pick<WorkRow, "slug" | "kind" | "updated_at">[]).map((r) => ({
     slug: r.slug,
@@ -203,17 +280,20 @@ export async function getPublishedChapterUpdates(): Promise<
   const sb = getPublicSupabase();
   const { data, error } = await sb
     .from("works")
-    .select("slug, chapters(slug, status, updated_at)")
+    .select("slug, chapters(slug, status, updated_at, deleted_at)")
     .eq("status", "published")
-    .eq("kind", "series");
+    .eq("kind", "series")
+    .is("deleted_at", null);
   if (error) throw new Error(`getPublishedChapterUpdates: ${error.message}`);
   const out: { seriesSlug: string; chapterSlug: string; updatedAt: string }[] = [];
   for (const row of (data ?? []) as {
     slug: string;
-    chapters: { slug: string; status: string; updated_at: string }[] | null;
+    chapters:
+      | { slug: string; status: string; updated_at: string; deleted_at: string | null }[]
+      | null;
   }[]) {
     for (const ch of row.chapters ?? []) {
-      if (ch.status === "published") {
+      if (ch.status === "published" && ch.deleted_at === null) {
         out.push({
           seriesSlug: row.slug,
           chapterSlug: ch.slug,
@@ -225,15 +305,16 @@ export async function getPublishedChapterUpdates(): Promise<
   return out;
 }
 
-export async function getRandomEpigraph(): Promise<
+export const getRandomEpigraph = cache(async (): Promise<
   { text: string; title: string; slug: string } | null
-> {
+> => {
   const sb = getPublicSupabase();
   const { data, error } = await sb
     .from("works")
     .select("title, subtitle, slug")
     .eq("status", "published")
-    .neq("kind", "series");
+    .neq("kind", "series")
+    .is("deleted_at", null);
   if (error || !data) return null;
   const rows = (data as Pick<WorkRow, "title" | "subtitle" | "slug">[]).filter(
     (r) => r.subtitle
@@ -241,7 +322,7 @@ export async function getRandomEpigraph(): Promise<
   if (rows.length === 0) return null;
   const pick = rows[Math.floor(Math.random() * rows.length)];
   return { text: pick.subtitle!, title: pick.title, slug: pick.slug };
-}
+});
 
 export async function getPublishedChapterParams(): Promise<
   { slug: string; chapter: string }[]
@@ -249,17 +330,20 @@ export async function getPublishedChapterParams(): Promise<
   const sb = getPublicSupabase();
   const { data, error } = await sb
     .from("works")
-    .select("slug, chapters(slug, status)")
+    .select("slug, chapters(slug, status, deleted_at)")
     .eq("status", "published")
-    .eq("kind", "series");
+    .eq("kind", "series")
+    .is("deleted_at", null);
   if (error) throw new Error(`getPublishedChapterParams: ${error.message}`);
   const out: { slug: string; chapter: string }[] = [];
   for (const row of (data ?? []) as {
     slug: string;
-    chapters: { slug: string; status: string }[] | null;
+    chapters: { slug: string; status: string; deleted_at: string | null }[] | null;
   }[]) {
     for (const ch of row.chapters ?? []) {
-      if (ch.status === "published") out.push({ slug: row.slug, chapter: ch.slug });
+      if (ch.status === "published" && ch.deleted_at === null) {
+        out.push({ slug: row.slug, chapter: ch.slug });
+      }
     }
   }
   return out;

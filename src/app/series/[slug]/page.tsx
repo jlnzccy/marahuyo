@@ -36,13 +36,13 @@ export default async function SeriesPage({ params }: { params: Promise<Params> }
   return (
     <>
       <SiteHeader />
-      <main className="pt-12 pb-20 md:pt-20">
+      <main id="main-content" className="pt-12 pb-20 md:pt-20">
         <ReaderContainer width="wide">
           <FadeUp delay={0.05}>
             <div className="mb-6 flex flex-wrap items-center gap-3">
               <KindChip kind="series" />
               <span className="meta">
-                {published.length} chapter{published.length === 1 ? "" : "s"} · ongoing
+                {published.length} chapter{published.length === 1 ? "" : "s"} · {series.seriesStatus}
               </span>
             </div>
           </FadeUp>
@@ -79,7 +79,7 @@ export default async function SeriesPage({ params }: { params: Promise<Params> }
             </FadeUp>
           )}
 
-          <div className="my-14 hairline" aria-hidden />
+          <div className="my-14 hairline" aria-hidden="true" />
 
           <FadeUp>
             <h2 className="font-italic italic text-2xl text-muted md:text-3xl">chapters</h2>

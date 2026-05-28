@@ -88,13 +88,16 @@ export function ShareButton({ title, text }: Props) {
       onClick={handle}
       aria-label={label}
       className={cn(
-        "relative inline-flex h-11 items-center justify-center rounded-full px-3 text-whisper transition-colors hover:text-ink",
+        "relative inline-flex h-11 w-11 items-center justify-center rounded-full text-whisper transition-colors hover:text-ink",
         feedback && "text-ink"
       )}
     >
       <Icon className="h-5 w-5" strokeWidth={1.5} />
       {feedback && (
-        <span className="ml-2 font-mono text-[10px] uppercase tracking-meta">
+        <span
+          aria-live="polite"
+          className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink px-2 py-0.5 font-mono text-[10px] uppercase tracking-meta text-canvas"
+        >
           {feedback === "copied" ? "copied" : "shared"}
         </span>
       )}

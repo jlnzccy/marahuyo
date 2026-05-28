@@ -64,7 +64,7 @@ export function SettingsForm({ initial }: { initial: InitialSettings }) {
     setSaveError(undefined);
     try {
       await updateSettings({
-        defaultTheme,
+        defaultTheme: defaultTheme as "light" | "cream" | "midnight",
         instagramUrl: instagramUrl || null,
         twitterUrl: twitterUrl || null,
         mediumUrl: mediumUrl || null,

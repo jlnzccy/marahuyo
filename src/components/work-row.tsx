@@ -1,20 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { KindChip } from "@/components/kind-chip";
+import { formatDate } from "@/lib/format";
 import type { AnyWork } from "@/types/content";
 
 export function workHref(work: AnyWork): string {
   if (work.kind === "series") return `/series/${work.slug}`;
   return `/read/${work.slug}`;
-}
-
-function formatDate(iso?: string) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  });
 }
 
 export function WorkRow({ work }: { work: AnyWork }) {
@@ -30,7 +22,7 @@ export function WorkRow({ work }: { work: AnyWork }) {
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-surface md:aspect-[4/3]">
               <Image
                 src={work.coverImage}
-                alt=""
+                alt={`Cover for ${work.title}`}
                 fill
                 sizes="(min-width: 768px) 288px, 100vw"
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"

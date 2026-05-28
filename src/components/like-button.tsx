@@ -13,11 +13,10 @@ const LS_PREFIX = "marahuyo:like:";
 const BURST_MS = 900;
 
 /**
- * Local-only heart with a mojs-style burst on activation.
- * - Idle: outlined heart, whisper tone.
- * - Click → liked: red particle burst, scale-curve, color settles to ink black.
- * - Click → unliked: instant fade back to outlined whisper (no burst).
- * State persists in localStorage but is not shared across devices.
+ * Local-only heart with a CSS-driven burst on activation. The burst is
+ * triggered by toggling `data-burst="true"` on the button — the keyframes
+ * in globals.css read that attribute, so this component owns no animation
+ * mutation, only state.
  */
 export function LikeButton({ keyId }: Props) {
   const [mounted, setMounted] = useState(false);
@@ -48,11 +47,7 @@ export function LikeButton({ keyId }: Props) {
     }
   };
 
-  /* Server / pre-hydrate render uses the outlined state so SSR & CSR agree. */
   const showLiked = mounted && liked;
-
-  /* 10 burst particles arranged radially. Alternating tints for depth. */
-  const particles = Array.from({ length: 10 }, (_, i) => i);
 
   return (
     <button
@@ -60,35 +55,12 @@ export function LikeButton({ keyId }: Props) {
       onClick={toggle}
       aria-pressed={showLiked}
       aria-label={showLiked ? "Remove from liked" : "Like this piece"}
+      data-burst={bursting ? "true" : undefined}
       className={cn(
-        "relative inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors",
+        "heart-burst-root relative inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors",
         showLiked ? "text-ink" : "text-whisper hover:text-ink"
       )}
     >
-      {/* Particle ring — only mounted during burst */}
-      {bursting && (
-        <span aria-hidden className="pointer-events-none absolute inset-0">
-          {particles.map((i) => {
-            const angle = (i / particles.length) * 360;
-            const radius = 28 + (i % 2) * 6;
-            const color = i % 2 === 0 ? "rgb(239,68,68)" : "rgb(252,165,165)";
-            return (
-              <span
-                key={i}
-                className="heart-particle"
-                style={
-                  {
-                    background: color,
-                    ["--a" as string]: `${angle}deg`,
-                    ["--r" as string]: `${radius}px`
-                  } as React.CSSProperties
-                }
-              />
-            );
-          })}
-        </span>
-      )}
-
       <Heart
         className={cn(
           "h-5 w-5 transition-all duration-300",

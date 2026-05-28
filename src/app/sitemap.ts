@@ -7,13 +7,12 @@ import { siteUrl } from "@/lib/site";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
-  const now = new Date();
 
   const staticEntries: MetadataRoute.Sitemap = [
-    { url: `${base}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    { url: `${base}/works`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${base}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${base}/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.4 }
+    { url: `${base}/`, changeFrequency: "weekly", priority: 1 },
+    { url: `${base}/works`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${base}/about`, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${base}/contact`, changeFrequency: "yearly", priority: 0.4 }
   ];
 
   const [works, chapters] = await Promise.all([

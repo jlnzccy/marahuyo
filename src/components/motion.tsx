@@ -1,9 +1,15 @@
 "use client";
 
-import { motion, type HTMLMotionProps } from "framer-motion";
+import type { ReactNode } from "react";
+import { motion, useReducedMotion, type HTMLMotionProps } from "framer-motion";
 import { cn } from "@/lib/cn";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
+const VIEWPORT = { once: true, margin: "-10%" } as const;
+
+type MotionWrapperProps = Omit<HTMLMotionProps<"div">, "children"> & {
+  children?: ReactNode;
+};
 
 export function FadeUp({
   delay = 0,
@@ -11,11 +17,16 @@ export function FadeUp({
   className,
   children,
   ...rest
-}: HTMLMotionProps<"div"> & { delay?: number; duration?: number }) {
+}: MotionWrapperProps & { delay?: number; duration?: number }) {
+  const reduced = useReducedMotion();
+  if (reduced) {
+    return <div className={cn(className)}>{children}</div>;
+  }
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={VIEWPORT}
       transition={{ duration, delay, ease: EASE }}
       className={cn(className)}
       {...rest}
@@ -31,11 +42,16 @@ export function FadeIn({
   className,
   children,
   ...rest
-}: HTMLMotionProps<"div"> & { delay?: number; duration?: number }) {
+}: MotionWrapperProps & { delay?: number; duration?: number }) {
+  const reduced = useReducedMotion();
+  if (reduced) {
+    return <div className={cn(className)}>{children}</div>;
+  }
   return (
     <motion.div
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      whileInView={{ opacity: 1 }}
+      viewport={VIEWPORT}
       transition={{ duration, delay, ease: EASE }}
       className={cn(className)}
       {...rest}
@@ -50,11 +66,16 @@ export function Stagger({
   staggerChildren = 0.08,
   className,
   ...rest
-}: HTMLMotionProps<"div"> & { staggerChildren?: number }) {
+}: MotionWrapperProps & { staggerChildren?: number }) {
+  const reduced = useReducedMotion();
+  if (reduced) {
+    return <div className={cn(className)}>{children}</div>;
+  }
   return (
     <motion.div
       initial="hidden"
-      animate="visible"
+      whileInView="visible"
+      viewport={VIEWPORT}
       variants={{
         hidden: {},
         visible: { transition: { staggerChildren } }

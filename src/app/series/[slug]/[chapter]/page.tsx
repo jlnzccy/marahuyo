@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ReaderShell } from "@/components/reader-shell";
-import { getChapter, getPublishedChapterParams } from "@/lib/works";
+import { getChapterByPath, getPublishedChapterParams } from "@/lib/works";
 
 type Params = { slug: string; chapter: string };
 
@@ -12,7 +12,7 @@ export async function generateStaticParams(): Promise<Params[]> {
 
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   const { slug, chapter } = await params;
-  const found = await getChapter(slug, chapter);
+  const found = await getChapterByPath(slug, chapter);
   if (!found) return {};
   return {
     title: `${found.chapter.title} — ${found.series.title}`,
@@ -22,14 +22,13 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
 
 export default async function ChapterPage({ params }: { params: Promise<Params> }) {
   const { slug, chapter } = await params;
-  const found = await getChapter(slug, chapter);
+  const found = await getChapterByPath(slug, chapter);
   if (!found) notFound();
 
-  const { series, chapter: c } = found;
-  const published = series.chapters.filter((ch) => ch.status === "published");
-  const idx = published.findIndex((ch) => ch.id === c.id);
-  const prevCh = idx > 0 ? published[idx - 1] : null;
-  const nextCh = idx >= 0 && idx < published.length - 1 ? published[idx + 1] : null;
+  const { series, chapter: c, siblings } = found;
+  const idx = siblings.findIndex((ch) => ch.id === c.id);
+  const prevCh = idx > 0 ? siblings[idx - 1] : null;
+  const nextCh = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1] : null;
 
   const date = c.publishedAt
     ? new Date(c.publishedAt).toLocaleDateString("en-US", {

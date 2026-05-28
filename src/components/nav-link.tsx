@@ -27,7 +27,7 @@ export function NavLink({ href, children, exact, className }: Props) {
     >
       <span>{children}</span>
       <span
-        aria-hidden
+        aria-hidden="true"
         className={cn(
           "absolute -bottom-1 left-0 h-px bg-ink transition-all duration-500 ease-out-expo",
           active ? "w-full" : "w-0 group-hover:w-full"

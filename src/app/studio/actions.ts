@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { timingSafeEqual } from "node:crypto";
 import { studioEnv } from "@/lib/supabase/env";
 import {
@@ -15,11 +15,71 @@ export type SignInState = {
   message?: string;
 };
 
+/* ── Rate limiting ─────────────────────────────────────────────── */
+
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+
+type RateEntry = { count: number; resetAt: number };
+const attempts = new Map<string, RateEntry>();
+
+function getClientIp(h: Headers): string {
+  return (
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    h.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
+function checkRateLimit(ip: string): string | null {
+  const now = Date.now();
+  const entry = attempts.get(ip);
+
+  if (entry) {
+    // Reset window expired — clear
+    if (now >= entry.resetAt) {
+      attempts.delete(ip);
+      return null;
+    }
+    if (entry.count >= MAX_ATTEMPTS) {
+      const secsLeft = Math.ceil((entry.resetAt - now) / 1000);
+      const minsLeft = Math.ceil(secsLeft / 60);
+      return `Too many login attempts. Try again in ${minsLeft} minute${minsLeft === 1 ? "" : "s"}.`;
+    }
+  }
+  return null;
+}
+
+function recordFailure(ip: string) {
+  const now = Date.now();
+  const entry = attempts.get(ip);
+  if (entry && now < entry.resetAt) {
+    entry.count += 1;
+  } else {
+    attempts.set(ip, { count: 1, resetAt: now + LOCKOUT_MS });
+  }
+}
+
+function clearFailures(ip: string) {
+  attempts.delete(ip);
+}
+
+/* ── Actions ───────────────────────────────────────────────────── */
+
 /** Verifies username + password against env. Sets a signed session cookie. */
 export async function signIn(
   _prev: SignInState,
   formData: FormData
 ): Promise<SignInState> {
+  const h = await headers();
+  const ip = getClientIp(h);
+
+  // Check rate limit before doing anything
+  const blocked = checkRateLimit(ip);
+  if (blocked) {
+    return { status: "error", message: blocked };
+  }
+
   let expectedUser: string;
   let expectedPass: string;
   let secret: string;
@@ -55,8 +115,12 @@ export async function signIn(
     timingSafeEqual(passBuf, expectedPassBuf);
 
   if (!userOk || !passOk) {
+    recordFailure(ip);
     return { status: "error", message: "Invalid username or password." };
   }
+
+  // Success — clear any previous failures for this IP
+  clearFailures(ip);
 
   const jar = await cookies();
   jar.set(STUDIO_COOKIE_NAME, signSessionValue(username, secret), {
@@ -75,3 +139,4 @@ export async function signOut() {
   jar.delete(STUDIO_COOKIE_NAME);
   redirect("/studio/login");
 }
+

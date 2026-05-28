@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FileText, Library, PenLine } from "lucide-react";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import type { ChapterRow, WorkRow } from "@/lib/supabase/types";
+import { relativeTime } from "@/lib/format";
 
 type WorkDraftRow = Pick<WorkRow, "id" | "title" | "kind" | "updated_at" | "word_count">;
 type ChapterDraftRow = Pick<
@@ -11,18 +12,6 @@ type ChapterDraftRow = Pick<
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Drafts · Studio" };
-
-function formatRelative(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.round(diff / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
 
 type Item = {
   key: string;
@@ -42,12 +31,14 @@ export default async function StudioDraftsPage() {
       .from("works")
       .select("id, title, kind, updated_at, word_count")
       .eq("status", "draft")
+      .is("deleted_at", null)
       .order("updated_at", { ascending: false })
       .returns<WorkDraftRow[]>(),
     supabase
       .from("chapters")
       .select("id, title, series_id, number, updated_at, word_count, works(title)")
       .eq("status", "draft")
+      .is("deleted_at", null)
       .order("updated_at", { ascending: false })
       .returns<ChapterDraftRow[]>()
   ]);
@@ -124,7 +115,7 @@ export default async function StudioDraftsPage() {
                     <div className="meta truncate">{item.secondary}</div>
                   </div>
                   <span className="meta hidden sm:inline">{item.meta}</span>
-                  <span className="meta">{formatRelative(item.updatedAt)}</span>
+                  <span className="meta">{relativeTime(item.updatedAt)}</span>
                 </Link>
               </li>
             );

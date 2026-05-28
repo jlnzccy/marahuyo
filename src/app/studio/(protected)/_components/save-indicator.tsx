@@ -32,7 +32,7 @@ export function SaveIndicator({ status, lastSavedAt, errorMessage }: Props) {
   return (
     <div className="flex items-center gap-2">
       <span
-        aria-hidden
+        aria-hidden="true"
         className={cn(
           "relative inline-flex h-2 w-2 rounded-full",
           COLORS[status],

@@ -8,7 +8,7 @@ export default function NotFound() {
   return (
     <>
       <SiteHeader />
-      <main className="pt-24 pb-24">
+      <main id="main-content" className="pt-24 pb-24">
         <ReaderContainer className="text-center">
           <p className="meta mb-6">404 — a missing page</p>
           <h1 className="font-serif text-5xl font-bold leading-tight md:text-6xl">

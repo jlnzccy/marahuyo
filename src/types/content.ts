@@ -9,6 +9,8 @@ export type WorkKind =
 
 export type WorkStatus = "draft" | "published";
 
+export type SeriesStatus = "ongoing" | "completed" | "hiatus";
+
 export interface BaseWork {
   id: string;
   slug: string;
@@ -50,7 +52,7 @@ export interface Chapter {
 
 export interface Series extends BaseWork {
   kind: "series";
-  coverColor?: string;
+  seriesStatus: SeriesStatus;
   chapters: Chapter[];
 }
 

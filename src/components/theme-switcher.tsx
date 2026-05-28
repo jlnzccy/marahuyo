@@ -2,9 +2,14 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Sun, Moon, Coffee, Type } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@/components/theme-provider";
 import { THEMES, THEME_LABELS, THEME_DESCRIPTIONS, type Theme } from "@/lib/theme";
+import {
+  READING_SIZES,
+  READING_SIZE_LABELS,
+  type ReadingSize
+} from "@/lib/reading-size";
 import { cn } from "@/lib/cn";
 
 const ICONS: Record<Theme, React.ComponentType<{ className?: string }>> = {
@@ -20,9 +25,11 @@ type Props = {
 };
 
 export function ThemeSwitcher({ floating = true, className }: Props) {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, readingSize, setReadingSize } = useTheme();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const themeButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -39,6 +46,35 @@ export function ThemeSwitcher({ floating = true, className }: Props) {
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  /* Focus return: when the panel closes, send focus back to the trigger. */
+  const prevOpen = useRef(open);
+  useEffect(() => {
+    if (prevOpen.current && !open) {
+      triggerRef.current?.focus();
+    }
+    prevOpen.current = open;
+  }, [open]);
+
+  /* Roving focus inside the theme radiogroup. ArrowUp/Down moves the active
+     radio; Home/End jump to ends; Space/Enter selects (native button behaviour
+     already triggers click via Space/Enter). */
+  const onThemeKey = useCallback(
+    (e: React.KeyboardEvent<HTMLButtonElement>, idx: number) => {
+      let nextIdx: number | null = null;
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") nextIdx = (idx + 1) % THEMES.length;
+      else if (e.key === "ArrowUp" || e.key === "ArrowLeft")
+        nextIdx = (idx - 1 + THEMES.length) % THEMES.length;
+      else if (e.key === "Home") nextIdx = 0;
+      else if (e.key === "End") nextIdx = THEMES.length - 1;
+      if (nextIdx === null) return;
+      e.preventDefault();
+      const t = THEMES[nextIdx];
+      setTheme(t);
+      themeButtonRefs.current[nextIdx]?.focus();
+    },
+    [setTheme]
+  );
 
   const ActiveIcon = ICONS[theme];
 
@@ -62,58 +98,88 @@ export function ThemeSwitcher({ floating = true, className }: Props) {
             className="absolute bottom-14 right-0 w-72 origin-bottom-right rounded-2xl border border-border/80 bg-surface/95 p-2 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.25)] backdrop-blur-xl"
           >
             <div className="px-3 pt-2 pb-1 meta">Reading temperature</div>
-            <ul role="listbox" aria-label="Theme">
-              {THEMES.map((t) => {
+            <div role="radiogroup" aria-label="Theme">
+              {THEMES.map((t, idx) => {
                 const Icon = ICONS[t];
                 const active = t === theme;
                 return (
-                  <li key={t}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={active}
-                      onClick={() => {
-                        setTheme(t);
-                        setOpen(false);
-                      }}
+                  <button
+                    key={t}
+                    ref={(el) => {
+                      themeButtonRefs.current[idx] = el;
+                    }}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    tabIndex={active ? 0 : -1}
+                    onClick={() => setTheme(t)}
+                    onKeyDown={(e) => onThemeKey(e, idx)}
+                    className={cn(
+                      "group flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left font-sans text-sm transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                      active
+                        ? "bg-canvas text-ink"
+                        : "hover:bg-canvas/70 text-muted hover:text-ink"
+                    )}
+                  >
+                    <span
                       className={cn(
-                        "group flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left font-sans text-sm transition-colors",
-                        active
-                          ? "bg-canvas text-ink"
-                          : "hover:bg-canvas/70 text-muted hover:text-ink"
+                        "mt-0.5 grid h-7 w-7 place-items-center rounded-md border border-border/60 bg-canvas",
+                        active && "border-accent/60"
                       )}
                     >
-                      <span
-                        className={cn(
-                          "mt-0.5 grid h-7 w-7 place-items-center rounded-md border border-border/60 bg-canvas",
-                          active && "border-accent/60"
-                        )}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
+                      <Icon className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block font-medium text-ink">{THEME_LABELS[t]}</span>
+                      <span className="block text-[12px] leading-snug text-whisper">
+                        {THEME_DESCRIPTIONS[t]}
                       </span>
-                      <span className="flex-1">
-                        <span className="block font-medium text-ink">{THEME_LABELS[t]}</span>
-                        <span className="block text-[12px] leading-snug text-whisper">
-                          {THEME_DESCRIPTIONS[t]}
-                        </span>
-                      </span>
-                      {active && (
-                        <span aria-hidden className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
-                      )}
-                    </button>
-                  </li>
+                    </span>
+                    {active && (
+                      <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 rounded-full bg-accent" />
+                    )}
+                  </button>
                 );
               })}
-            </ul>
-            <div className="mt-1 flex items-center justify-between border-t border-border/60 px-3 pt-2 pb-1">
-              <span className="meta">Type</span>
-              <Type className="h-3 w-3 text-whisper" aria-hidden />
+            </div>
+
+            <div className="mt-1 flex items-center justify-between border-t border-border/60 px-3 pt-3 pb-1">
+              <span className="meta inline-flex items-center gap-1.5">
+                <Type className="h-3 w-3" aria-hidden="true" />
+                Type
+              </span>
+              <div role="radiogroup" aria-label="Reader text size" className="flex items-center gap-1">
+                {READING_SIZES.map((s) => {
+                  const active = s === readingSize;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      aria-label={`${READING_SIZE_LABELS[s]} text`}
+                      onClick={() => setReadingSize(s)}
+                      className={cn(
+                        "h-7 min-w-[28px] rounded-md border px-2 font-serif text-ink transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                        active
+                          ? "border-accent/60 bg-canvas"
+                          : "border-border/60 bg-canvas/40 text-muted hover:text-ink"
+                      )}
+                    >
+                      <SizeGlyph size={s} />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <motion.button
+        ref={triggerRef}
         type="button"
         aria-label="Reading themes"
         aria-expanded={open}
@@ -122,11 +188,20 @@ export function ThemeSwitcher({ floating = true, className }: Props) {
         onClick={() => setOpen((v) => !v)}
         className={cn(
           "grid h-11 w-11 place-items-center rounded-full border border-border bg-surface/90 text-ink shadow-[0_10px_30px_-15px_rgba(0,0,0,0.4)] backdrop-blur transition-colors",
-          "hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+          "hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         )}
       >
         <ActiveIcon className="h-4 w-4" />
       </motion.button>
     </div>
+  );
+}
+
+function SizeGlyph({ size }: { size: ReadingSize }) {
+  const fontSize = size === "sm" ? 10 : size === "md" ? 13 : 16;
+  return (
+    <span className="block" style={{ fontSize, lineHeight: 1 }}>
+      A
+    </span>
   );
 }

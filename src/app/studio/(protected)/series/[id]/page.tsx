@@ -11,10 +11,10 @@ type SeriesPageRow = Pick<
   | "subtitle"
   | "kind"
   | "status"
+  | "series_status"
   | "excerpt"
   | "tags"
   | "cover_image"
-  | "cover_color"
   | "published_at"
 > & {
   chapters:
@@ -51,7 +51,7 @@ export default async function StudioSeriesEditorPage({
   const { data, error } = await supabase
     .from("works")
     .select(
-      "id, slug, title, subtitle, kind, status, excerpt, tags, cover_image, cover_color, published_at, chapters(id, slug, number, title, status, word_count, updated_at)"
+      "id, slug, title, subtitle, kind, status, series_status, excerpt, tags, cover_image, published_at, chapters(id, slug, number, title, status, word_count, updated_at)"
     )
     .eq("id", id)
     .eq("kind", "series")
@@ -78,6 +78,7 @@ export default async function StudioSeriesEditorPage({
     title: data.title ?? "",
     subtitle: data.subtitle ?? "",
     status: data.status,
+    seriesStatus: data.series_status,
     excerpt: data.excerpt ?? "",
     tags: data.tags ?? [],
     coverImage: data.cover_image ?? "",
