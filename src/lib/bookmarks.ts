@@ -7,6 +7,8 @@ export type Bookmark = {
   kind: WorkKind;
   subtitle?: string;
   visitedAt: number;
+  /** 0-100. Where the reader had scrolled to when last seen on the page. */
+  scrollPercent?: number;
 };
 
 const LS_KEY = "marahuyo:bookmarks";
@@ -52,6 +54,28 @@ export function recordVisit(b: Omit<Bookmark, "visitedAt">): void {
     localStorage.setItem(LS_KEY, JSON.stringify(next));
   } catch {
     /* private mode */
+  }
+}
+
+/**
+ * Patch a bookmark's scroll progress without bumping `visitedAt` or otherwise
+ * reordering the shelf. No-op if the bookmark isn't already on the shelf.
+ */
+export function updateProgress(key: string, scrollPercent: number): void {
+  if (typeof window === "undefined") return;
+  const clamped = Math.max(0, Math.min(100, Math.round(scrollPercent)));
+  try {
+    const current = safeParse(localStorage.getItem(LS_KEY));
+    let touched = false;
+    const next = current.map((b) => {
+      if (b.key !== key) return b;
+      if (b.scrollPercent === clamped) return b;
+      touched = true;
+      return { ...b, scrollPercent: clamped };
+    });
+    if (touched) localStorage.setItem(LS_KEY, JSON.stringify(next));
+  } catch {
+    /* swallow */
   }
 }
 

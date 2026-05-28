@@ -1,8 +1,10 @@
-import Link from "next/link";
-import { FileText, Library, PenLine } from "lucide-react";
+import { FileText } from "lucide-react";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import type { ChapterRow, WorkRow } from "@/lib/supabase/types";
-import { relativeTime } from "@/lib/format";
+import {
+  BulkDraftsList,
+  type DraftItem
+} from "@/app/studio/(protected)/_components/bulk-drafts-list";
 
 type WorkDraftRow = Pick<WorkRow, "id" | "title" | "kind" | "updated_at" | "word_count">;
 type ChapterDraftRow = Pick<
@@ -12,16 +14,6 @@ type ChapterDraftRow = Pick<
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Drafts · Studio" };
-
-type Item = {
-  key: string;
-  href: string;
-  icon: typeof FileText;
-  primary: string;
-  secondary: string;
-  meta: string;
-  updatedAt: string;
-};
 
 export default async function StudioDraftsPage() {
   const supabase = getAdminSupabase();
@@ -54,20 +46,24 @@ export default async function StudioDraftsPage() {
     );
   }
 
-  const workItems: Item[] = (worksRes.data ?? []).map((w) => ({
+  const workItems: DraftItem[] = (worksRes.data ?? []).map((w) => ({
     key: `w-${w.id}`,
+    id: w.id,
+    kind: "work",
     href: w.kind === "series" ? `/studio/series/${w.id}` : `/studio/works/${w.id}`,
-    icon: w.kind === "series" ? Library : PenLine,
+    icon: w.kind === "series" ? "library" : "pen",
     primary: w.title || "Untitled",
     secondary: w.kind,
     meta: `${w.word_count.toLocaleString()} words`,
     updatedAt: w.updated_at
   }));
 
-  const chapterItems: Item[] = (chaptersRes.data ?? []).map((c) => ({
+  const chapterItems: DraftItem[] = (chaptersRes.data ?? []).map((c) => ({
     key: `c-${c.id}`,
+    id: c.id,
+    kind: "chapter",
     href: `/studio/series/${c.series_id}/chapters/${c.id}`,
-    icon: FileText,
+    icon: "file",
     primary: c.title || `Chapter ${c.number}`,
     secondary: `${c.works?.title ?? "series"} · ch ${String(c.number).padStart(2, "0")}`,
     meta: `${c.word_count.toLocaleString()} words`,
@@ -98,29 +94,7 @@ export default async function StudioDraftsPage() {
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-border/60">
-          {items.map((item) => {
-            const Icon = item.icon;
-            return (
-              <li key={item.key}>
-                <Link
-                  href={item.href}
-                  className="group grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 py-4 transition-colors hover:bg-surface/40"
-                >
-                  <Icon className="h-4 w-4 text-whisper transition-colors group-hover:text-ink" />
-                  <div className="min-w-0">
-                    <div className="truncate font-serif text-lg font-bold text-ink transition-transform group-hover:translate-x-0.5">
-                      {item.primary}
-                    </div>
-                    <div className="meta truncate">{item.secondary}</div>
-                  </div>
-                  <span className="meta hidden sm:inline">{item.meta}</span>
-                  <span className="meta">{relativeTime(item.updatedAt)}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <BulkDraftsList items={items} />
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { fontVariables } from "@/lib/fonts";
 import { ThemeProvider, themeInitScript } from "@/components/theme-provider";
+import { ReaderStateHydrator } from "@/components/reader-state-hydrator";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://marahuyoph.vercel.app"),
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to content
         </a>
+        <ReaderStateHydrator />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

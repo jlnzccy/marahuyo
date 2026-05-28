@@ -78,6 +78,21 @@ export function ContinueReading() {
                     {b.subtitle}
                   </p>
                 )}
+                {typeof b.scrollPercent === "number" && b.scrollPercent >= 5 && (
+                  <div className="mt-4 space-y-1.5">
+                    <div className="h-0.5 w-full overflow-hidden rounded-full bg-border/70">
+                      <div
+                        className="h-full bg-accent/80"
+                        style={{ width: `${Math.min(100, b.scrollPercent)}%` }}
+                      />
+                    </div>
+                    <p className="meta">
+                      {b.scrollPercent >= 95
+                        ? "Almost finished"
+                        : `Continue from ${Math.round(b.scrollPercent)}%`}
+                    </p>
+                  </div>
+                )}
               </Link>
             </div>
           ))}

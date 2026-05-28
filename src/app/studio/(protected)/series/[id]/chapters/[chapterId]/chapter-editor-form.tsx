@@ -28,6 +28,7 @@ export type InitialChapter = {
   number: number;
   title: string;
   subtitle: string;
+  excerpt: string;
   status: WorkStatus;
   body: string;
   poetryMode: boolean;
@@ -41,6 +42,7 @@ const SAVE_DEBOUNCE_MS = 1200;
 export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
   const [title, setTitle] = useState(initial.title);
   const [subtitle, setSubtitle] = useState(initial.subtitle);
+  const [excerpt, setExcerpt] = useState(initial.excerpt);
   const [poetryMode, setPoetryMode] = useState(initial.poetryMode);
   const [customDate, setCustomDate] = useState<string>(
     initial.publishedAt ? initial.publishedAt.slice(0, 10) : ""
@@ -62,6 +64,7 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
   const latestSnapshotRef = useRef({
     title: initial.title,
     subtitle: initial.subtitle,
+    excerpt: initial.excerpt,
     poetryMode: initial.poetryMode,
     body: initial.body,
     wordCount: initial.wordCount,
@@ -78,6 +81,7 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
         id: initial.id,
         title: snap.title,
         subtitle: snap.subtitle || null,
+        excerpt: snap.excerpt,
         body: snap.body,
         poetryMode: snap.poetryMode,
         wordCount: snap.wordCount,
@@ -103,6 +107,7 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
     latestSnapshotRef.current = {
       title,
       subtitle,
+      excerpt,
       poetryMode,
       body,
       wordCount,
@@ -111,7 +116,17 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
     };
     if (didMount.current) scheduleSave();
     else didMount.current = true;
-  }, [title, subtitle, poetryMode, body, wordCount, readingMinutes, customDate, scheduleSave]);
+  }, [
+    title,
+    subtitle,
+    excerpt,
+    poetryMode,
+    body,
+    wordCount,
+    readingMinutes,
+    customDate,
+    scheduleSave
+  ]);
 
   useEffect(() => {
     return () => {
@@ -279,7 +294,18 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
           </section>
 
           <section className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-            <label className="flex items-center gap-2">
+            <label className="block">
+              <span className="meta">excerpt</span>
+              <textarea
+                value={excerpt}
+                onChange={(e) => setExcerpt(e.target.value)}
+                rows={4}
+                placeholder="a short line shown on the series TOC"
+                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-2 font-serif text-sm text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
+              />
+            </label>
+
+            <label className="flex items-center gap-2 pt-1">
               <input
                 type="checkbox"
                 checked={poetryMode}

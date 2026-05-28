@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import type { WorkRow } from "@/lib/supabase/types";
-import { relativeTime } from "@/lib/format";
+import {
+  BulkWorksList,
+  type WorkListItem
+} from "@/app/studio/(protected)/_components/bulk-works-list";
 
 type WorkListRow = Pick<
   WorkRow,
@@ -32,7 +35,14 @@ export default async function StudioWorksList() {
     );
   }
 
-  const rows = data ?? [];
+  const rows: WorkListItem[] = (data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    kind: row.kind,
+    status: row.status,
+    wordCount: row.word_count,
+    updatedAt: row.updated_at
+  }));
 
   return (
     <div className="space-y-8">
@@ -55,7 +65,7 @@ export default async function StudioWorksList() {
         </Link>
       </header>
 
-      {rows.length === 0 && (
+      {rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/60 bg-surface/30 p-10 text-center">
           <FileText className="mx-auto h-5 w-5 text-whisper" />
           <p className="mt-4 font-italic italic text-lg text-muted">
@@ -68,34 +78,9 @@ export default async function StudioWorksList() {
             <Plus className="h-3 w-3" /> start a new work
           </Link>
         </div>
+      ) : (
+        <BulkWorksList rows={rows} />
       )}
-
-      <ul className="divide-y divide-border/60">
-        {rows.map((row) => (
-          <li key={row.id}>
-            <Link
-              href={`/studio/works/${row.id}`}
-              className="group grid grid-cols-[1fr_auto_auto] items-baseline gap-6 py-4 transition-colors hover:bg-surface/40"
-            >
-              <div>
-                <div className="flex items-center gap-3">
-                  <span className="font-serif text-xl font-bold text-ink transition-transform group-hover:translate-x-0.5">
-                    {row.title || "Untitled"}
-                  </span>
-                  <span className="meta">{row.kind}</span>
-                  {row.status === "draft" && (
-                    <span className="rounded-full border border-border/60 bg-canvas px-2 py-0.5 font-mono text-[10px] uppercase tracking-meta text-muted">
-                      draft
-                    </span>
-                  )}
-                </div>
-              </div>
-              <span className="meta">{row.word_count.toLocaleString()} words</span>
-              <span className="meta">{relativeTime(row.updated_at)}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

@@ -66,6 +66,7 @@ function mapChapter(row: ChapterRow): Chapter {
     number: row.number,
     title: row.title,
     subtitle: row.subtitle ?? undefined,
+    excerpt: row.excerpt ?? "",
     status: row.status,
     publishedAt: row.published_at ?? undefined,
     wordCount: row.word_count,
@@ -221,6 +222,36 @@ export const getRecentDispatches = cache(
 
 export const getFeaturedWork = cache(async (): Promise<AnyWork | null> => {
   const sb = getPublicSupabase();
+
+  /* Pinned pick first: explicit `featured = true`, newest among those.
+     Tolerates a missing column so the homepage still renders during the
+     window between deploy and migration apply. */
+  try {
+    const { data: pinned, error: pinnedErr } = await sb
+      .from("works")
+      .select("*")
+      .eq("status", "published")
+      .eq("featured", true)
+      .is("deleted_at", null)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (pinnedErr) {
+      const msg = pinnedErr.message ?? "";
+      if (!/column .*featured.* does not exist|undefined column/i.test(msg)) {
+        throw new Error(`getFeaturedWork(pinned): ${msg}`);
+      }
+    } else if (pinned) {
+      return mapWork(pinned as WorkRow);
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/column .*featured.* does not exist|undefined column/i.test(msg)) {
+      throw err;
+    }
+  }
+
+  /* Fallback: most recent published work, ignoring featured flag. */
   const { data, error } = await sb
     .from("works")
     .select("*")

@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { BlurImage } from "@/components/blur-image";
 import { KindChip } from "@/components/kind-chip";
 import { formatDate } from "@/lib/format";
 import type { AnyWork } from "@/types/content";
@@ -20,7 +20,7 @@ export function WorkRow({ work }: { work: AnyWork }) {
         {work.coverImage && (
           <div className="md:w-72 md:shrink-0">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-surface md:aspect-[4/3]">
-              <Image
+              <BlurImage
                 src={work.coverImage}
                 alt={`Cover for ${work.title}`}
                 fill

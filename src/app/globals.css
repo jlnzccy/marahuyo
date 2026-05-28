@@ -108,10 +108,12 @@
 
   .reader-prose h2 {
     @apply text-3xl mt-14 mb-6;
+    scroll-margin-top: 6rem;
   }
 
   .reader-prose h3 {
     @apply text-2xl mt-10 mb-4;
+    scroll-margin-top: 6rem;
   }
 
   .reader-prose em,

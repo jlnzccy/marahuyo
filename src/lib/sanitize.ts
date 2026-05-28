@@ -9,7 +9,7 @@ const ALLOWED_TAGS = [
 ];
 
 const ALLOWED_ATTR = [
-  "href", "src", "alt", "class", "target", "rel",
+  "href", "src", "alt", "class", "id", "target", "rel",
   "data-node-type", "data-type",
   "sandbox", "allow", "allowfullscreen",
   "width", "height", "loading",

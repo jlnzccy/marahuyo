@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { BlurImage } from "@/components/blur-image";
 import { KindChip } from "@/components/kind-chip";
 import type { AnyWork } from "@/types/content";
 
@@ -60,7 +60,7 @@ export function FeaturedCard({ work, href, eyebrow = "latest letter" }: Props) {
             and the empty `alt=""` accessibility smell. */}
         <div className="relative order-1 block aspect-[5/4] overflow-hidden rounded-2xl bg-surface md:order-2 md:aspect-auto md:min-h-[460px]">
           {cover && (
-            <Image
+            <BlurImage
               src={cover}
               alt={`Cover for ${work.title}`}
               fill

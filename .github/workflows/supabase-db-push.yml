@@ -1,0 +1,45 @@
+name: supabase-db-push
+
+# Push SQL migrations under supabase/migrations/ to the live Supabase project
+# whenever they change on main. Free-tier friendly: runs only on push, not on
+# a cron, so it costs zero Action minutes when nothing's changed.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN   personal access token (Supabase Dashboard → Account → Tokens)
+#   SUPABASE_PROJECT_REF    the short ref, e.g. abcd1234efgh5678
+#   SUPABASE_DB_PASSWORD    project DB password (Settings → Database)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/supabase-db-push.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-db-push
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link \
+            --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" \
+            --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
+
+      - name: Push migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase db push --password "${{ secrets.SUPABASE_DB_PASSWORD }}"

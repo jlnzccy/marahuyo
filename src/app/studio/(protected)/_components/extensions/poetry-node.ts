@@ -38,10 +38,51 @@ export const PoetryNode = Node.create({
       "Mod-Alt-p": () =>
         this.editor.commands.toggleNode(this.name, "paragraph"),
 
+      // Exit the poetry block: drop into a new paragraph after it. Useful as
+      // a deliberate, unambiguous escape that doesn't depend on the cursor
+      // sitting at exactly the right spot.
+      "Mod-Enter": () => {
+        if (!this.editor.isActive(this.name)) return false;
+        const { $from } = this.editor.state.selection;
+        const afterNode = $from.end($from.depth) + 1;
+        return this.editor
+          .chain()
+          .insertContentAt(afterNode, { type: "paragraph" })
+          .setTextSelection(afterNode + 1)
+          .focus()
+          .run();
+      },
+
       Enter: () => {
         if (!this.editor.isActive(this.name)) return false;
-        // Insert a literal newline so the verse line breaks stay inside the node
-        // instead of TipTap splitting the block into a new paragraph.
+
+        // If the cursor sits at the end of the node and the previous char is
+        // already a newline, the writer pressed Enter on an empty trailing
+        // line — exit the poetry block into a fresh paragraph instead of
+        // appending yet another \n.
+        const { state } = this.editor;
+        const { $from, empty } = state.selection;
+        const nodeEnd = $from.end($from.depth);
+        const atEnd = empty && $from.pos === nodeEnd;
+        if (atEnd) {
+          const prevChar = state.doc.textBetween(
+            Math.max(0, $from.pos - 1),
+            $from.pos
+          );
+          if (prevChar === "\n") {
+            const afterNode = nodeEnd + 1;
+            return this.editor
+              .chain()
+              .deleteRange({ from: $from.pos - 1, to: $from.pos })
+              .insertContentAt(afterNode - 1, { type: "paragraph" })
+              .setTextSelection(afterNode)
+              .focus()
+              .run();
+          }
+        }
+
+        // Otherwise insert a literal newline so verse line breaks stay inside
+        // the node instead of TipTap splitting the block into a new paragraph.
         return this.editor.commands.insertContent("\n");
       },
 

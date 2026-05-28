@@ -24,9 +24,11 @@ export interface WorkRow {
   poetry_mode: boolean;
   tags: string[];
   cover_image: string | null;
+  featured: boolean;
   word_count: number;
   reading_minutes: number;
   published_at: string | null;
+  scheduled_at: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -45,9 +47,11 @@ export interface WorkInsert {
   poetry_mode?: boolean;
   tags?: string[];
   cover_image?: string | null;
+  featured?: boolean;
   word_count?: number;
   reading_minutes?: number;
   published_at?: string | null;
+  scheduled_at?: string | null;
   deleted_at?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -65,9 +69,11 @@ export interface WorkUpdate {
   poetry_mode?: boolean;
   tags?: string[];
   cover_image?: string | null;
+  featured?: boolean;
   word_count?: number;
   reading_minutes?: number;
   published_at?: string | null;
+  scheduled_at?: string | null;
   deleted_at?: string | null;
   updated_at?: string;
 }
@@ -79,6 +85,7 @@ export interface ChapterRow {
   number: number;
   title: string;
   subtitle: string | null;
+  excerpt: string;
   status: WorkStatusDb;
   body: string;
   poetry_mode: boolean;
@@ -98,6 +105,7 @@ export interface ChapterInsert {
   number: number;
   title: string;
   subtitle?: string | null;
+  excerpt?: string;
   status?: WorkStatusDb;
   body?: string;
   poetry_mode?: boolean;
@@ -116,6 +124,7 @@ export interface ChapterUpdate {
   number?: number;
   title?: string;
   subtitle?: string | null;
+  excerpt?: string;
   status?: WorkStatusDb;
   body?: string;
   poetry_mode?: boolean;
@@ -172,6 +181,50 @@ export interface SettingsUpdate {
   updated_at?: string;
 }
 
+export interface ReaderStateRow {
+  device_id: string;
+  key: string;
+  kind: string | null;
+  title: string | null;
+  href: string | null;
+  subtitle: string | null;
+  scroll_percent: number;
+  liked: boolean;
+  visited_at: string;
+}
+
+export interface ReaderStateInsert {
+  device_id: string;
+  key: string;
+  kind?: string | null;
+  title?: string | null;
+  href?: string | null;
+  subtitle?: string | null;
+  scroll_percent?: number;
+  liked?: boolean;
+  visited_at?: string;
+}
+
+export interface WorkVersionRow {
+  id: string;
+  work_id: string;
+  title: string;
+  subtitle: string | null;
+  excerpt: string;
+  body: string;
+  saved_at: string;
+}
+
+export interface WorkVersionInsert {
+  id?: string;
+  work_id: string;
+  title: string;
+  subtitle?: string | null;
+  excerpt?: string;
+  body?: string;
+  saved_at?: string;
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -199,6 +252,26 @@ export type Database = {
         Row: SettingsRow;
         Insert: SettingsRow;
         Update: SettingsUpdate;
+        Relationships: [];
+      };
+      work_versions: {
+        Row: WorkVersionRow;
+        Insert: WorkVersionInsert;
+        Update: WorkVersionInsert;
+        Relationships: [
+          {
+            foreignKeyName: "work_versions_work_id_fkey";
+            columns: ["work_id"];
+            isOneToOne: false;
+            referencedRelation: "works";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      reader_state: {
+        Row: ReaderStateRow;
+        Insert: ReaderStateInsert;
+        Update: ReaderStateInsert;
         Relationships: [];
       };
     };

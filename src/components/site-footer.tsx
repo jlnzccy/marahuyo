@@ -13,6 +13,13 @@ export function SiteFooter() {
           <Link href="/works" className="hover:text-ink transition-colors">Archive</Link>
           <Link href="/about" className="hover:text-ink transition-colors">About</Link>
           <Link href="/contact" className="hover:text-ink transition-colors">Contact</Link>
+          <a
+            href="/feed.xml"
+            className="hover:text-ink transition-colors"
+            aria-label="RSS feed of recent dispatches"
+          >
+            RSS
+          </a>
           <Link href="/studio" className="text-whisper hover:text-ink transition-colors">Studio</Link>
         </nav>
       </div>

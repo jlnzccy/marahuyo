@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Eye, Trash2, Send, Undo2, ChevronLeft } from "lucide-react";
+import { Eye, Trash2, Send, Undo2, ChevronLeft, Star, History } from "lucide-react";
 import {
   updateWork,
   publishWork,
@@ -13,6 +13,7 @@ import { Editor, type EditorPayload } from "@/app/studio/(protected)/_components
 import { CoverUploader } from "@/app/studio/(protected)/_components/cover-uploader";
 import { ConfirmDialog } from "@/app/studio/(protected)/_components/confirm-dialog";
 import { DatePicker } from "@/app/studio/(protected)/_components/date-picker";
+import { TagInput } from "@/app/studio/(protected)/_components/tag-input";
 import {
   SaveIndicator,
   type SaveStatus
@@ -32,14 +33,21 @@ export type InitialWork = {
   tags: string[];
   coverImage: string;
   poetryMode: boolean;
+  featured: boolean;
   wordCount: number;
   readingMinutes: number;
   publishedAt: string | null;
+  scheduledAt: string | null;
 };
 
 const SAVE_DEBOUNCE_MS = 1200;
 
-export function WorkEditorForm({ initial }: { initial: InitialWork }) {
+type Props = {
+  initial: InitialWork;
+  knownTags: string[];
+};
+
+export function WorkEditorForm({ initial, knownTags }: Props) {
   // ----- Local form state -----
   const [title, setTitle] = useState(initial.title);
   const [subtitle, setSubtitle] = useState(initial.subtitle);
@@ -47,6 +55,7 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
   const [tagsText, setTagsText] = useState(initial.tags.join(", "));
   const [coverImage, setCoverImage] = useState(initial.coverImage);
   const [poetryMode, setPoetryMode] = useState(initial.poetryMode);
+  const [featured, setFeatured] = useState(initial.featured);
   const [body, setBody] = useState(initial.body);
   const [wordCount, setWordCount] = useState(initial.wordCount);
   const [readingMinutes, setReadingMinutes] = useState(initial.readingMinutes);
@@ -54,6 +63,13 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
     initial.publishedAt ? initial.publishedAt.slice(0, 10) : ""
   );
   const [dateError, setDateError] = useState<string | undefined>(undefined);
+  /* `<input type="datetime-local">` wants `YYYY-MM-DDTHH:mm`, no Z. */
+  const [scheduledLocal, setScheduledLocal] = useState<string>(() => {
+    if (!initial.scheduledAt) return "";
+    const d = new Date(initial.scheduledAt);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
 
   // ----- Status + control -----
   const [status, setStatus] = useState<WorkStatus>(initial.status);
@@ -73,10 +89,12 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
     tags: initial.tags,
     coverImage: initial.coverImage,
     poetryMode: initial.poetryMode,
+    featured: initial.featured,
     body: initial.body,
     wordCount: initial.wordCount,
     readingMinutes: initial.readingMinutes,
-    customDate: initial.publishedAt ? initial.publishedAt.slice(0, 10) : ""
+    customDate: initial.publishedAt ? initial.publishedAt.slice(0, 10) : "",
+    scheduledLocal: scheduledLocal
   });
 
   const flushSave = useCallback(async () => {
@@ -93,9 +111,13 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
         tags: snap.tags,
         coverImage: snap.coverImage || null,
         poetryMode: snap.poetryMode,
+        featured: snap.featured,
         wordCount: snap.wordCount,
         readingMinutes: snap.readingMinutes,
-        publishedAt: snap.customDate ? new Date(snap.customDate).toISOString() : null
+        publishedAt: snap.customDate ? new Date(snap.customDate).toISOString() : null,
+        scheduledAt: snap.scheduledLocal
+          ? new Date(snap.scheduledLocal).toISOString()
+          : null
       });
       setLastSavedAt(Date.now());
       setSaveState("saved");
@@ -125,10 +147,12 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
       tags,
       coverImage,
       poetryMode,
+      featured,
       body,
       wordCount,
       readingMinutes,
-      customDate
+      customDate,
+      scheduledLocal
     };
     // Skip the very first render — there are no real changes yet.
     if (didMount.current) scheduleSave();
@@ -140,10 +164,12 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
     tagsText,
     coverImage,
     poetryMode,
+    featured,
     body,
     wordCount,
     readingMinutes,
     customDate,
+    scheduledLocal,
     scheduleSave
   ]);
 
@@ -231,6 +257,12 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/studio/works/${initial.id}/versions`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-surface/60 px-2.5 py-1.5 font-sans text-xs text-muted hover:bg-surface hover:text-ink"
+            >
+              <History className="h-3 w-3" /> history
+            </Link>
             {isPublished && (
               <Link
                 href={publicHref}
@@ -333,12 +365,10 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
 
             <label className="block">
               <span className="meta">tags (comma-separated)</span>
-              <input
-                type="text"
+              <TagInput
                 value={tagsText}
-                onChange={(e) => setTagsText(e.target.value)}
-                placeholder="essay, memory, manila"
-                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-1.5 font-mono text-xs text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
+                onChange={setTagsText}
+                knownTags={knownTags}
               />
             </label>
 
@@ -359,6 +389,28 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
                 Poetry mode (preserves all whitespace)
               </span>
             </label>
+
+            <label className="flex items-start gap-2 pt-1">
+              <input
+                type="checkbox"
+                checked={featured}
+                onChange={(e) => setFeatured(e.target.checked)}
+                className="mt-1 h-3.5 w-3.5 accent-ink"
+              />
+              <span className="font-sans text-sm text-muted">
+                <span className="inline-flex items-center gap-1.5 text-ink">
+                  <Star
+                    className="h-3.5 w-3.5"
+                    fill={featured ? "currentColor" : "none"}
+                  />
+                  Feature on the homepage
+                </span>
+                <span className="block text-xs text-whisper">
+                  Pins this work to the hero. Newest pinned wins if multiple are
+                  flagged.
+                </span>
+              </span>
+            </label>
           </section>
 
           <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-4">
@@ -377,6 +429,31 @@ export function WorkEditorForm({ initial }: { initial: InitialWork }) {
             <p className="font-sans text-xs text-whisper">
               leave empty to auto-set when published
             </p>
+          </section>
+
+          <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-4">
+            <label className="block">
+              <span className="meta">schedule publish</span>
+              <input
+                type="datetime-local"
+                value={scheduledLocal}
+                onChange={(e) => setScheduledLocal(e.target.value)}
+                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-1.5 font-mono text-xs text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
+              />
+            </label>
+            <p className="font-sans text-xs text-whisper">
+              draft flips to published when the cron fires after this time (every
+              15 minutes). leave empty to publish manually.
+            </p>
+            {scheduledLocal && (
+              <button
+                type="button"
+                onClick={() => setScheduledLocal("")}
+                className="font-sans text-xs text-muted underline underline-offset-2 hover:text-ink"
+              >
+                clear schedule
+              </button>
+            )}
           </section>
         </aside>
       </div>

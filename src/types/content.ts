@@ -42,6 +42,7 @@ export interface Chapter {
   number: number;
   title: string;
   subtitle?: string;
+  excerpt: string;
   status: WorkStatus;
   publishedAt?: string;
   wordCount: number;

@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Loader2, AlertCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -19,6 +20,8 @@ const COLORS: Record<SaveStatus, string> = {
   error: "bg-red-500"
 };
 
+const TOAST_MS = 1500;
+
 function formatRelative(ts: number) {
   const seconds = Math.round((Date.now() - ts) / 1000);
   if (seconds < 5) return "just now";
@@ -28,9 +31,39 @@ function formatRelative(ts: number) {
   return new Date(ts).toLocaleTimeString();
 }
 
+function formatExact(ts: number) {
+  const d = new Date(ts);
+  return d.toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
 export function SaveIndicator({ status, lastSavedAt, errorMessage }: Props) {
+  const [flash, setFlash] = useState(false);
+  const prevStatus = useRef<SaveStatus>(status);
+
+  useEffect(() => {
+    if (prevStatus.current !== "saving" || status !== "saved") {
+      prevStatus.current = status;
+      return;
+    }
+    prevStatus.current = status;
+    setFlash(true);
+    const t = window.setTimeout(() => setFlash(false), TOAST_MS);
+    return () => window.clearTimeout(t);
+  }, [status]);
+
+  const tooltip =
+    status === "saved" && lastSavedAt
+      ? `Saved ${formatExact(lastSavedAt)}`
+      : undefined;
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="relative flex items-center gap-2" title={tooltip}>
       <span
         aria-hidden="true"
         className={cn(
@@ -67,6 +100,22 @@ export function SaveIndicator({ status, lastSavedAt, errorMessage }: Props) {
           )}
           {status === "idle" && <span>up to date</span>}
         </motion.span>
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {flash && (
+          <motion.span
+            role="status"
+            initial={{ opacity: 0, y: -4, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.94 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            className="pointer-events-none absolute -top-9 right-0 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 font-mono text-[10px] uppercase tracking-meta text-emerald-700 dark:text-emerald-300"
+          >
+            <Check className="h-3 w-3" />
+            saved
+          </motion.span>
+        )}
       </AnimatePresence>
     </div>
   );

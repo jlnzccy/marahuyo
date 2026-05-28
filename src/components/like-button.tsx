@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
+import { syncEntries } from "@/lib/reader-sync";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -41,6 +42,13 @@ export function LikeButton({ keyId }: Props) {
     } catch {
       /* swallow */
     }
+    syncEntries([
+      {
+        key: keyId,
+        liked: next,
+        visitedAt: Date.now()
+      }
+    ]);
     if (next) {
       setBursting(true);
       window.setTimeout(() => setBursting(false), BURST_MS);

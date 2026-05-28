@@ -8,12 +8,13 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { ReadingProgress } from "@/components/reading-progress";
 import { ReaderFoot } from "@/components/reader-foot";
 import { KindChip } from "@/components/kind-chip";
-import { LikeButton } from "@/components/like-button";
-import { ShareButton } from "@/components/share-button";
+import { ReaderActions } from "@/components/reader-actions";
 import { BookmarkTracker } from "@/components/bookmark-tracker";
+import { TableOfContents } from "@/components/table-of-contents";
 import { FadeUp } from "@/components/motion";
 import { cn } from "@/lib/cn";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { parseHeadings } from "@/lib/toc";
 import type { WorkKind } from "@/types/content";
 
 type FootLink = { href: string; label: string; hint?: string };
@@ -131,19 +132,21 @@ export function ReaderShell({
 
           <div className="my-12 hairline" aria-hidden="true" />
 
-          <FadeUp delay={0.3}>
-            <article
-              className={cn("reader-prose", poetryMode && "poetry-context")}
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) }}
-            />
-          </FadeUp>
-
-          <FadeUp delay={0.08}>
-            <div className="reader-actions mt-10 flex items-center gap-2">
-              {likeKey && <LikeButton keyId={likeKey} />}
-              <ShareButton title={title} text={subtitle} />
-            </div>
-          </FadeUp>
+          {(() => {
+            const sanitized = sanitizeHtml(body);
+            const { html, headings } = parseHeadings(sanitized);
+            return (
+              <>
+                <TableOfContents headings={headings} />
+                <FadeUp delay={0.3}>
+                  <article
+                    className={cn("reader-prose", poetryMode && "poetry-context")}
+                    dangerouslySetInnerHTML={{ __html: html }}
+                  />
+                </FadeUp>
+              </>
+            );
+          })()}
 
           {(prev || next) && (
             <FadeUp delay={0.1}>
@@ -152,6 +155,7 @@ export function ReaderShell({
           )}
         </ReaderContainer>
       </main>
+      <ReaderActions title={title} subtitle={subtitle} likeKey={likeKey} />
       <SiteFooter />
       <ThemeSwitcher />
     </>

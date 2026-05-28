@@ -1,10 +1,16 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Sun, Moon, Coffee, Type } from "lucide-react";
+import { Sun, Moon, Coffee, Type, Monitor } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@/components/theme-provider";
-import { THEMES, THEME_LABELS, THEME_DESCRIPTIONS, type Theme } from "@/lib/theme";
+import {
+  THEME_PREFERENCES,
+  PREFERENCE_LABEL,
+  PREFERENCE_DESCRIPTION,
+  type Theme,
+  type ThemePreference
+} from "@/lib/theme";
 import {
   READING_SIZES,
   READING_SIZE_LABELS,
@@ -12,7 +18,14 @@ import {
 } from "@/lib/reading-size";
 import { cn } from "@/lib/cn";
 
-const ICONS: Record<Theme, React.ComponentType<{ className?: string }>> = {
+const ICONS: Record<ThemePreference, React.ComponentType<{ className?: string }>> = {
+  auto: Monitor,
+  cream: Coffee,
+  light: Sun,
+  midnight: Moon
+};
+
+const RESOLVED_ICONS: Record<Theme, React.ComponentType<{ className?: string }>> = {
   cream: Coffee,
   light: Sun,
   midnight: Moon
@@ -25,7 +38,7 @@ type Props = {
 };
 
 export function ThemeSwitcher({ floating = true, className }: Props) {
-  const { theme, setTheme, readingSize, setReadingSize } = useTheme();
+  const { theme, preference, setPreference, readingSize, setReadingSize } = useTheme();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -62,21 +75,25 @@ export function ThemeSwitcher({ floating = true, className }: Props) {
   const onThemeKey = useCallback(
     (e: React.KeyboardEvent<HTMLButtonElement>, idx: number) => {
       let nextIdx: number | null = null;
-      if (e.key === "ArrowDown" || e.key === "ArrowRight") nextIdx = (idx + 1) % THEMES.length;
+      if (e.key === "ArrowDown" || e.key === "ArrowRight")
+        nextIdx = (idx + 1) % THEME_PREFERENCES.length;
       else if (e.key === "ArrowUp" || e.key === "ArrowLeft")
-        nextIdx = (idx - 1 + THEMES.length) % THEMES.length;
+        nextIdx = (idx - 1 + THEME_PREFERENCES.length) % THEME_PREFERENCES.length;
       else if (e.key === "Home") nextIdx = 0;
-      else if (e.key === "End") nextIdx = THEMES.length - 1;
+      else if (e.key === "End") nextIdx = THEME_PREFERENCES.length - 1;
       if (nextIdx === null) return;
       e.preventDefault();
-      const t = THEMES[nextIdx];
-      setTheme(t);
+      const p = THEME_PREFERENCES[nextIdx];
+      setPreference(p);
       themeButtonRefs.current[nextIdx]?.focus();
     },
-    [setTheme]
+    [setPreference]
   );
 
-  const ActiveIcon = ICONS[theme];
+  /* Trigger glyph: show the user's chosen preference (so the Monitor icon
+     surfaces when they're in `auto`). Falls back to the resolved theme. */
+  const ActiveIcon =
+    preference === "auto" ? ICONS.auto : RESOLVED_ICONS[theme];
 
   return (
     <div
@@ -99,12 +116,12 @@ export function ThemeSwitcher({ floating = true, className }: Props) {
           >
             <div className="px-3 pt-2 pb-1 meta">Reading temperature</div>
             <div role="radiogroup" aria-label="Theme">
-              {THEMES.map((t, idx) => {
-                const Icon = ICONS[t];
-                const active = t === theme;
+              {THEME_PREFERENCES.map((p, idx) => {
+                const Icon = ICONS[p];
+                const active = p === preference;
                 return (
                   <button
-                    key={t}
+                    key={p}
                     ref={(el) => {
                       themeButtonRefs.current[idx] = el;
                     }}
@@ -112,7 +129,7 @@ export function ThemeSwitcher({ floating = true, className }: Props) {
                     role="radio"
                     aria-checked={active}
                     tabIndex={active ? 0 : -1}
-                    onClick={() => setTheme(t)}
+                    onClick={() => setPreference(p)}
                     onKeyDown={(e) => onThemeKey(e, idx)}
                     className={cn(
                       "group flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left font-sans text-sm transition-colors",
@@ -131,9 +148,9 @@ export function ThemeSwitcher({ floating = true, className }: Props) {
                       <Icon className="h-3.5 w-3.5" />
                     </span>
                     <span className="flex-1">
-                      <span className="block font-medium text-ink">{THEME_LABELS[t]}</span>
+                      <span className="block font-medium text-ink">{PREFERENCE_LABEL[p]}</span>
                       <span className="block text-[12px] leading-snug text-whisper">
-                        {THEME_DESCRIPTIONS[t]}
+                        {PREFERENCE_DESCRIPTION[p]}
                       </span>
                     </span>
                     {active && (

@@ -1,7 +1,17 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { DEFAULT_THEME, STORAGE_KEY, type Theme, isTheme } from "@/lib/theme";
+import {
+  DEFAULT_PREFERENCE,
+  DEFAULT_THEME,
+  STORAGE_KEY,
+  isTheme,
+  isThemePreference,
+  resolveTheme,
+  THEMES,
+  type Theme,
+  type ThemePreference
+} from "@/lib/theme";
 import {
   DEFAULT_READING_SIZE,
   READING_SIZE_STORAGE_KEY,
@@ -10,8 +20,13 @@ import {
 } from "@/lib/reading-size";
 
 type ThemeContextValue = {
+  /** Resolved concrete theme currently applied. */
   theme: Theme;
-  setTheme: (next: Theme) => void;
+  /** What the user picked — can be `auto`. */
+  preference: ThemePreference;
+  /** Save a new preference. `auto` re-binds to the OS color scheme. */
+  setPreference: (next: ThemePreference) => void;
+  /** Convenience: cycle through the concrete themes (skips `auto`). */
   cycle: () => void;
   readingSize: ReadingSize;
   setReadingSize: (next: ReadingSize) => void;
@@ -19,20 +34,61 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [preference, setPreferenceState] = useState<ThemePreference>(DEFAULT_PREFERENCE);
   const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
   const [readingSize, setReadingSizeState] = useState<ReadingSize>(DEFAULT_READING_SIZE);
 
+  // Sync from the pre-hydration script's outcome on mount, then keep listening
+  // to system dark-mode while preference is `auto`.
   useEffect(() => {
-    const currentTheme = document.documentElement.getAttribute("data-theme");
+    const root = document.documentElement;
+
+    const storedPref = (() => {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (isThemePreference(raw)) return raw;
+        // Legacy: older builds stored a concrete Theme. Treat as that theme.
+        if (isTheme(raw)) return raw;
+      } catch {
+        /* storage blocked */
+      }
+      return DEFAULT_PREFERENCE;
+    })();
+    setPreferenceState(storedPref);
+
+    const currentTheme = root.getAttribute("data-theme");
     if (isTheme(currentTheme)) setThemeState(currentTheme);
-    const currentSize = document.documentElement.getAttribute("data-reading-size");
+
+    const currentSize = root.getAttribute("data-reading-size");
     if (isReadingSize(currentSize)) setReadingSizeState(currentSize);
   }, []);
 
-  const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
-    document.documentElement.setAttribute("data-theme", next);
+  // While preference is `auto`, follow the OS color scheme live.
+  useEffect(() => {
+    if (preference !== "auto") return;
+    if (typeof window.matchMedia !== "function") return;
+    const mql = window.matchMedia(DARK_QUERY);
+    const apply = () => {
+      const next = resolveTheme("auto", mql.matches);
+      setThemeState(next);
+      document.documentElement.setAttribute("data-theme", next);
+    };
+    apply();
+    mql.addEventListener("change", apply);
+    return () => mql.removeEventListener("change", apply);
+  }, [preference]);
+
+  const setPreference = useCallback((next: ThemePreference) => {
+    setPreferenceState(next);
+    const systemDark =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(DARK_QUERY).matches;
+    const resolved = resolveTheme(next, systemDark);
+    setThemeState(resolved);
+    document.documentElement.setAttribute("data-theme", resolved);
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {
@@ -51,12 +107,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const cycle = useCallback(() => {
-    setTheme(theme === "light" ? "cream" : theme === "cream" ? "midnight" : "light");
-  }, [theme, setTheme]);
+    const idx = THEMES.indexOf(theme);
+    const nextTheme = THEMES[(idx + 1) % THEMES.length];
+    setPreference(nextTheme);
+  }, [theme, setPreference]);
 
   const value = useMemo(
-    () => ({ theme, setTheme, cycle, readingSize, setReadingSize }),
-    [theme, setTheme, cycle, readingSize, setReadingSize]
+    () => ({ theme, preference, setPreference, cycle, readingSize, setReadingSize }),
+    [theme, preference, setPreference, cycle, readingSize, setReadingSize]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -68,12 +126,25 @@ export function useTheme() {
   return ctx;
 }
 
-/** Inline script injected pre-hydration to avoid theme + size flash. */
+/**
+ * Inline script injected pre-hydration to avoid theme + size flash. Reads the
+ * stored preference, resolves `auto` against `matchMedia`, and stamps the
+ * concrete theme onto `<html>` before paint.
+ */
 export const themeInitScript = `
 (function(){
   try {
     var stored = localStorage.getItem(${JSON.stringify(STORAGE_KEY)});
-    var theme = (stored === 'cream' || stored === 'light' || stored === 'midnight') ? stored : '${DEFAULT_THEME}';
+    var pref = (stored === 'auto' || stored === 'cream' || stored === 'light' || stored === 'midnight')
+      ? stored
+      : '${DEFAULT_PREFERENCE}';
+    var theme;
+    if (pref === 'auto') {
+      var dark = typeof window.matchMedia === 'function' && window.matchMedia('${DARK_QUERY}').matches;
+      theme = dark ? 'midnight' : 'light';
+    } else {
+      theme = pref;
+    }
     document.documentElement.setAttribute('data-theme', theme);
     var size = localStorage.getItem(${JSON.stringify(READING_SIZE_STORAGE_KEY)});
     if (size === 'sm' || size === 'md' || size === 'lg') {

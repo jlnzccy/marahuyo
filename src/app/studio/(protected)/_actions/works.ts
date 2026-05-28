@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -13,7 +14,9 @@ import type {
   WorkRow,
   ChapterInsert,
   ChapterUpdate,
-  ChapterRow
+  ChapterRow,
+  WorkVersionInsert,
+  WorkVersionRow
 } from "@/lib/supabase/types";
 
 const UUID = z.string().uuid("Invalid id");
@@ -92,6 +95,53 @@ async function removeWorkStorage(workId: string): Promise<void> {
     removeCoversPrefix(workId),
     removeCoversPrefix(`editor/${workId}`)
   ]);
+  // Note: post-Phase-5 uploads land in `covers/dedup/<hash>.<ext>` and are
+  // shared across works, so we deliberately do NOT sweep that prefix on
+  // delete — another work may still reference the same image. Orphaned
+  // dedup files are reclaimed manually if storage pressure ever matters.
+}
+
+/**
+ * Upload bytes once. Reuses the existing path when the SHA-256 of the file
+ * matches a prior upload — saves bandwidth + Supabase storage for the writer
+ * who re-uploads the same cover into different works. Returns a public URL
+ * that the caller can persist on whichever row it belongs to.
+ */
+async function dedupUploadToCovers(
+  file: File
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const hash = createHash("sha256").update(bytes).digest("hex");
+  const ext = (file.name.split(".").pop() || "bin")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  const objectPath = `dedup/${hash}.${ext}`;
+  const supabase = getAdminSupabase();
+
+  const { data: existing } = await supabase.storage.from("covers").list("dedup", {
+    search: `${hash}.${ext}`,
+    limit: 1
+  });
+
+  if (existing && existing.length > 0) {
+    const { data } = supabase.storage.from("covers").getPublicUrl(objectPath);
+    return { ok: true, url: data.publicUrl };
+  }
+
+  const { error } = await supabase.storage.from("covers").upload(objectPath, file, {
+    contentType: file.type,
+    upsert: false,
+    cacheControl: "31536000"
+  });
+
+  // A "Duplicate" error here means another request raced us to the same path,
+  // which is exactly the dedup outcome we want — treat it as success.
+  if (error && !/already exists|duplicate/i.test(error.message)) {
+    return { ok: false, error: `Upload failed: ${error.message}` };
+  }
+
+  const { data } = supabase.storage.from("covers").getPublicUrl(objectPath);
+  return { ok: true, url: data.publicUrl };
 }
 
 // =============================================================================
@@ -155,6 +205,7 @@ const updateWorkSchema = z.object({
   tags: z.array(z.string().min(1).max(60)).max(40).optional(),
   coverImage: z.string().url().max(2000).nullable().optional(),
   poetryMode: z.boolean().optional(),
+  featured: z.boolean().optional(),
   wordCount: z.number().int().min(0).max(10_000_000).optional(),
   readingMinutes: z.number().int().min(0).max(100_000).optional(),
   seriesStatus: z.enum(["ongoing", "completed", "hiatus"]).optional(),
@@ -162,6 +213,11 @@ const updateWorkSchema = z.object({
     .string()
     .datetime({ offset: true })
     .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .nullable()
+    .optional(),
+  scheduledAt: z
+    .string()
+    .datetime({ offset: true })
     .nullable()
     .optional()
 });
@@ -181,10 +237,12 @@ export async function updateWork(rawInput: UpdateWorkInput) {
   if (input.tags !== undefined) patch.tags = input.tags;
   if (input.coverImage !== undefined) patch.cover_image = input.coverImage;
   if (input.poetryMode !== undefined) patch.poetry_mode = input.poetryMode;
+  if (input.featured !== undefined) patch.featured = input.featured;
   if (input.wordCount !== undefined) patch.word_count = input.wordCount;
   if (input.readingMinutes !== undefined) patch.reading_minutes = input.readingMinutes;
   if (input.seriesStatus !== undefined) patch.series_status = input.seriesStatus;
   if (input.publishedAt !== undefined) patch.published_at = input.publishedAt;
+  if (input.scheduledAt !== undefined) patch.scheduled_at = input.scheduledAt;
 
   const { data: rawData, error } = await supabase
     .from("works")
@@ -203,9 +261,42 @@ export async function updateWork(rawInput: UpdateWorkInput) {
   return { ok: true as const, savedAt: Date.now() };
 }
 
+/**
+ * Snapshot a work's current title/body into work_versions. Called from
+ * publishWork (before the status flip) and from restoreWorkVersion so
+ * rollbacks themselves leave a trace. Best-effort — a snapshot failure
+ * does NOT block the publish, since we'd rather ship than freeze.
+ */
+async function captureWorkVersion(workId: string): Promise<void> {
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("works")
+    .select("title, subtitle, excerpt, body")
+    .eq("id", workId)
+    .maybeSingle()
+    .returns<
+      Pick<WorkRow, "title" | "subtitle" | "excerpt" | "body"> | null
+    >();
+  if (!data) return;
+  const insert: WorkVersionInsert = {
+    work_id: workId,
+    title: data.title,
+    subtitle: data.subtitle,
+    excerpt: data.excerpt,
+    body: data.body
+  };
+  try {
+    await supabase.from("work_versions").insert(insert as never);
+  } catch {
+    /* swallow — version snapshot is opportunistic */
+  }
+}
+
 export async function publishWork(id: string) {
   await assertOwner();
   const supabase = getAdminSupabase();
+
+  await captureWorkVersion(id);
 
   const { data: existing } = await supabase
     .from("works")
@@ -231,6 +322,50 @@ export async function publishWork(id: string) {
   revalidateReadingSurfaces(data?.slug ?? null);
   revalidatePath("/studio/works");
   return { ok: true as const };
+}
+
+/**
+ * Restore a work to a prior snapshot. Captures the current state into
+ * work_versions first, then overwrites title/body/excerpt with the chosen
+ * version. Status is left untouched — the writer publishes manually after
+ * reviewing the rollback.
+ */
+export async function restoreWorkVersion(versionId: string) {
+  await assertOwner();
+  const supabase = getAdminSupabase();
+
+  const { data: version, error: fetchErr } = await supabase
+    .from("work_versions")
+    .select("work_id, title, subtitle, excerpt, body")
+    .eq("id", versionId)
+    .maybeSingle()
+    .returns<
+      Pick<WorkVersionRow, "work_id" | "title" | "subtitle" | "excerpt" | "body"> | null
+    >();
+  if (fetchErr) {
+    throw new Error(`Failed to load version: ${fetchErr.message}`);
+  }
+  if (!version) throw new Error("Version not found.");
+
+  // Snapshot current state before overwriting, so the rollback is itself
+  // reversible.
+  await captureWorkVersion(version.work_id);
+
+  const patch: WorkUpdate = {
+    title: version.title,
+    subtitle: version.subtitle,
+    excerpt: version.excerpt,
+    body: version.body
+  };
+  const { error: updateErr } = await supabase
+    .from("works")
+    .update(patch as never)
+    .eq("id", version.work_id);
+  if (updateErr) throw new Error(`Failed to restore version: ${updateErr.message}`);
+
+  revalidatePath(`/studio/works/${version.work_id}`);
+  revalidatePath(`/studio/works/${version.work_id}/versions`);
+  return { ok: true as const, workId: version.work_id };
 }
 
 export async function unpublishWork(id: string) {
@@ -420,6 +555,7 @@ const updateChapterSchema = z.object({
   id: UUID,
   title: z.string().max(300).optional(),
   subtitle: z.string().max(500).nullable().optional(),
+  excerpt: z.string().max(2000).optional(),
   body: z.string().max(2_000_000).optional(),
   poetryMode: z.boolean().optional(),
   coverImage: z.string().url().max(2000).nullable().optional(),
@@ -443,6 +579,7 @@ export async function updateChapter(rawInput: UpdateChapterInput) {
   const patch: ChapterUpdate = {};
   if (input.title !== undefined) patch.title = input.title;
   if (input.subtitle !== undefined) patch.subtitle = input.subtitle;
+  if (input.excerpt !== undefined) patch.excerpt = input.excerpt;
   if (input.body !== undefined) patch.body = input.body;
   if (input.poetryMode !== undefined) patch.poetry_mode = input.poetryMode;
   if (input.coverImage !== undefined) patch.cover_image = input.coverImage;
@@ -639,30 +776,11 @@ export async function uploadCover(formData: FormData): Promise<UploadCoverResult
     };
   }
 
+  const uploaded = await dedupUploadToCovers(file);
+  if (!uploaded.ok) return uploaded;
+  const publicUrl = uploaded.url;
+
   const supabase = getAdminSupabase();
-
-  // Filename: <timestamp>-<safe-name>.<ext>
-  // Stored under covers/<workId>/ so re-uploads stay grouped per work.
-  const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const base = slugify(file.name.replace(/\.[^.]+$/, "")) || "cover";
-  const objectPath = `${workId}/${Date.now()}-${base}.${ext}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("covers")
-    .upload(objectPath, file, {
-      contentType: file.type,
-      upsert: false,
-      cacheControl: "31536000"
-    });
-
-  if (uploadError) {
-    return { ok: false, error: `Upload failed: ${uploadError.message}` };
-  }
-
-  const { data: publicData } = supabase.storage.from("covers").getPublicUrl(objectPath);
-  const publicUrl = publicData.publicUrl;
-
-  // Persist the URL on the work row so reader pages pick it up.
   const patch: WorkUpdate = { cover_image: publicUrl };
   const { data: updated, error: updateError } = await supabase
     .from("works")
@@ -723,25 +841,189 @@ export async function uploadStudioImage(formData: FormData): Promise<UploadImage
     };
   }
 
+  // Prefix is preserved for legibility / auditability of WHERE in the studio
+  // the upload came from, but the underlying storage path is the dedup hash.
+  // Same bytes uploaded twice → same URL.
+  return dedupUploadToCovers(file);
+}
+
+// =============================================================================
+// Bulk actions (multi-select on /studio/works + /studio/drafts)
+// =============================================================================
+
+const bulkWorksSchema = z.object({
+  ids: z.array(UUID).min(1).max(200),
+  action: z.enum(["publish", "unpublish", "delete"])
+});
+
+export type BulkWorksInput = z.infer<typeof bulkWorksSchema>;
+
+/**
+ * Apply the same status flip to every work id in `ids`. Returns the count of
+ * successful operations and any per-id errors so the UI can surface a partial
+ * failure without rolling back the rest.
+ */
+export async function bulkUpdateWorks(rawInput: BulkWorksInput) {
+  await assertOwner();
+  const { ids, action } = parseInput(bulkWorksSchema, rawInput, "bulkUpdateWorks");
   const supabase = getAdminSupabase();
-  const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const base = slugify(file.name.replace(/\.[^.]+$/, "")) || "image";
-  const objectPath = `${prefix}/${Date.now()}-${base}.${ext}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from("covers")
-    .upload(objectPath, file, {
-      contentType: file.type,
-      upsert: false,
-      cacheControl: "31536000"
-    });
+  // Fetch slugs/kinds up front so revalidation hits the right paths.
+  const { data: existing } = await supabase
+    .from("works")
+    .select("id, slug, kind")
+    .in("id", ids)
+    .is("deleted_at", null)
+    .returns<Pick<WorkRow, "id" | "slug" | "kind">[]>();
+  const rows = existing ?? [];
 
-  if (uploadError) {
-    return { ok: false, error: `Upload failed: ${uploadError.message}` };
+  const errors: { id: string; message: string }[] = [];
+  let succeeded = 0;
+  const now = new Date().toISOString();
+
+  for (const row of rows) {
+    try {
+      if (action === "publish") {
+        const { data: cur } = await supabase
+          .from("works")
+          .select("published_at")
+          .eq("id", row.id)
+          .maybeSingle()
+          .returns<Pick<WorkRow, "published_at"> | null>();
+        const patch: WorkUpdate = {
+          status: "published",
+          published_at: cur?.published_at ?? now
+        };
+        const { error } = await supabase
+          .from("works")
+          .update(patch as never)
+          .eq("id", row.id);
+        if (error) throw error;
+      } else if (action === "unpublish") {
+        const patch: WorkUpdate = { status: "draft" };
+        const { error } = await supabase
+          .from("works")
+          .update(patch as never)
+          .eq("id", row.id);
+        if (error) throw error;
+      } else {
+        const patch: WorkUpdate = { deleted_at: now };
+        const { error } = await supabase
+          .from("works")
+          .update(patch as never)
+          .eq("id", row.id);
+        if (error) throw error;
+        if (row.kind === "series") {
+          const chapPatch: ChapterUpdate = { deleted_at: now };
+          await supabase
+            .from("chapters")
+            .update(chapPatch as never)
+            .eq("series_id", row.id)
+            .is("deleted_at", null);
+        }
+      }
+      succeeded++;
+      revalidateReadingSurfaces(row.slug);
+    } catch (err) {
+      errors.push({
+        id: row.id,
+        message: err instanceof Error ? err.message : String(err)
+      });
+    }
   }
 
-  const { data: publicData } = supabase.storage.from("covers").getPublicUrl(objectPath);
-  return { ok: true, url: publicData.publicUrl };
+  revalidatePath("/studio/works");
+  revalidatePath("/studio/series");
+  revalidatePath("/studio/drafts");
+  revalidatePath("/studio/trash");
+
+  return { ok: true as const, succeeded, errors };
+}
+
+const bulkChaptersSchema = z.object({
+  ids: z.array(UUID).min(1).max(500),
+  action: z.enum(["publish", "unpublish", "delete"])
+});
+
+export type BulkChaptersInput = z.infer<typeof bulkChaptersSchema>;
+
+export async function bulkUpdateChapters(rawInput: BulkChaptersInput) {
+  await assertOwner();
+  const { ids, action } = parseInput(
+    bulkChaptersSchema,
+    rawInput,
+    "bulkUpdateChapters"
+  );
+  const supabase = getAdminSupabase();
+
+  const { data: existing } = await supabase
+    .from("chapters")
+    .select("id, slug, series_id")
+    .in("id", ids)
+    .is("deleted_at", null)
+    .returns<Pick<ChapterRow, "id" | "slug" | "series_id">[]>();
+  const rows = existing ?? [];
+
+  const errors: { id: string; message: string }[] = [];
+  let succeeded = 0;
+  const now = new Date().toISOString();
+  const touchedSeries = new Set<string>();
+
+  for (const row of rows) {
+    try {
+      if (action === "publish") {
+        const { data: cur } = await supabase
+          .from("chapters")
+          .select("published_at")
+          .eq("id", row.id)
+          .maybeSingle()
+          .returns<Pick<ChapterRow, "published_at"> | null>();
+        const patch: ChapterUpdate = {
+          status: "published",
+          published_at: cur?.published_at ?? now
+        };
+        const { error } = await supabase
+          .from("chapters")
+          .update(patch as never)
+          .eq("id", row.id);
+        if (error) throw error;
+      } else if (action === "unpublish") {
+        const patch: ChapterUpdate = { status: "draft" };
+        const { error } = await supabase
+          .from("chapters")
+          .update(patch as never)
+          .eq("id", row.id);
+        if (error) throw error;
+      } else {
+        const patch: ChapterUpdate = { deleted_at: now };
+        const { error } = await supabase
+          .from("chapters")
+          .update(patch as never)
+          .eq("id", row.id);
+        if (error) throw error;
+      }
+      succeeded++;
+      touchedSeries.add(row.series_id);
+    } catch (err) {
+      errors.push({
+        id: row.id,
+        message: err instanceof Error ? err.message : String(err)
+      });
+    }
+  }
+
+  // One series-level revalidate per touched series instead of per row.
+  await Promise.all(
+    [...touchedSeries].map(async (sid) => {
+      const slug = await getSeriesSlug(sid);
+      revalidateSeriesSurfaces(slug);
+      revalidatePath(`/studio/series/${sid}`);
+    })
+  );
+  revalidatePath("/studio/drafts");
+  revalidatePath("/studio/trash");
+
+  return { ok: true as const, succeeded, errors };
 }
 
 const reorderChaptersSchema = z.object({
