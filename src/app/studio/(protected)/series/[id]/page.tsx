@@ -20,7 +20,14 @@ type SeriesPageRow = Pick<
   chapters:
     | Pick<
         ChapterRow,
-        "id" | "slug" | "number" | "title" | "status" | "word_count" | "updated_at"
+        | "id"
+        | "slug"
+        | "number"
+        | "title"
+        | "status"
+        | "word_count"
+        | "updated_at"
+        | "deleted_at"
       >[]
     | null;
 };
@@ -51,7 +58,7 @@ export default async function StudioSeriesEditorPage({
   const { data, error } = await supabase
     .from("works")
     .select(
-      "id, slug, title, subtitle, kind, status, series_status, excerpt, tags, cover_image, published_at, chapters(id, slug, number, title, status, word_count, updated_at)"
+      "id, slug, title, subtitle, kind, status, series_status, excerpt, tags, cover_image, published_at, chapters(id, slug, number, title, status, word_count, updated_at, deleted_at)"
     )
     .eq("id", id)
     .eq("kind", "series")
@@ -61,6 +68,7 @@ export default async function StudioSeriesEditorPage({
   if (error || !data) notFound();
 
   const chapters: ChapterListItem[] = (data.chapters ?? [])
+    .filter((c) => c.deleted_at === null)
     .map((c) => ({
       id: c.id,
       slug: c.slug,

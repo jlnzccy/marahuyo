@@ -24,7 +24,7 @@ export function BlurImage({ style, alt, onLoad, ...rest }: ImageProps) {
       style={{
         ...style,
         opacity: loaded ? 1 : 0,
-        transition: "opacity 700ms ease-out"
+        transition: "opacity 700ms ease-out, transform 1000ms cubic-bezier(0.16, 1, 0.3, 1)"
       }}
     />
   );

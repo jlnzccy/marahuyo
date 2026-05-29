@@ -7,10 +7,16 @@ import {
 } from "@/app/studio/(protected)/_components/bulk-drafts-list";
 
 type WorkDraftRow = Pick<WorkRow, "id" | "title" | "kind" | "updated_at" | "word_count">;
+type ParentSeries = Pick<WorkRow, "title" | "deleted_at">;
 type ChapterDraftRow = Pick<
   ChapterRow,
   "id" | "title" | "series_id" | "number" | "updated_at" | "word_count"
-> & { works: Pick<WorkRow, "title"> | null };
+> & { works: ParentSeries | ParentSeries[] | null };
+
+function parent(c: ChapterDraftRow): ParentSeries | null {
+  if (!c.works) return null;
+  return Array.isArray(c.works) ? c.works[0] ?? null : c.works;
+}
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Drafts · Studio" };
@@ -28,7 +34,9 @@ export default async function StudioDraftsPage() {
       .returns<WorkDraftRow[]>(),
     supabase
       .from("chapters")
-      .select("id, title, series_id, number, updated_at, word_count, works(title)")
+      .select(
+        "id, title, series_id, number, updated_at, word_count, works(title, deleted_at)"
+      )
       .eq("status", "draft")
       .is("deleted_at", null)
       .order("updated_at", { ascending: false })
@@ -58,17 +66,21 @@ export default async function StudioDraftsPage() {
     updatedAt: w.updated_at
   }));
 
-  const chapterItems: DraftItem[] = (chaptersRes.data ?? []).map((c) => ({
-    key: `c-${c.id}`,
-    id: c.id,
-    kind: "chapter",
-    href: `/studio/series/${c.series_id}/chapters/${c.id}`,
-    icon: "file",
-    primary: c.title || `Chapter ${c.number}`,
-    secondary: `${c.works?.title ?? "series"} · ch ${String(c.number).padStart(2, "0")}`,
-    meta: `${c.word_count.toLocaleString()} words`,
-    updatedAt: c.updated_at
-  }));
+  // Hide chapter drafts whose parent series is trashed — they're effectively
+  // orphaned; the series has to be restored before they're editable again.
+  const chapterItems: DraftItem[] = (chaptersRes.data ?? [])
+    .filter((c) => parent(c)?.deleted_at === null)
+    .map((c) => ({
+      key: `c-${c.id}`,
+      id: c.id,
+      kind: "chapter",
+      href: `/studio/series/${c.series_id}/chapters/${c.id}`,
+      icon: "file",
+      primary: c.title || `Chapter ${c.number}`,
+      secondary: `${parent(c)?.title ?? "series"} · ch ${String(c.number).padStart(2, "0")}`,
+      meta: `${c.word_count.toLocaleString()} words`,
+      updatedAt: c.updated_at
+    }));
 
   const items = [...workItems, ...chapterItems].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()

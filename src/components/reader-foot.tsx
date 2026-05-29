@@ -26,7 +26,7 @@ export function ReaderFoot({ prev, next, index }: Props) {
           {prev && (
             <Link
               href={prev.href}
-              className="group block rounded-xl border border-border/60 bg-surface/40 p-5 transition-colors hover:bg-surface"
+              className="group block rounded-xl border border-border/60 bg-surface/40 p-5 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-surface hover:border-border"
             >
               <div className="meta mb-2 flex items-center gap-2">
                 <ArrowLeft className="h-3 w-3" /> previous
@@ -40,10 +40,10 @@ export function ReaderFoot({ prev, next, index }: Props) {
         </div>
 
         {showIndex && index && (
-          <div className="hidden md:block">
+          <div className="col-span-2 md:col-span-1 order-last md:order-none">
             <Link
               href={index.href}
-              className="group flex h-full flex-col items-center justify-center rounded-xl border border-border/60 bg-canvas p-5 text-center transition-colors hover:bg-surface"
+              className="group flex h-full flex-col items-center justify-center rounded-xl border border-border/60 bg-canvas p-5 text-center shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-surface hover:border-border"
             >
               <BookOpen className="h-4 w-4 text-muted" />
               <div className="meta mt-2">{index.label}</div>
@@ -58,7 +58,7 @@ export function ReaderFoot({ prev, next, index }: Props) {
           {next && (
             <Link
               href={next.href}
-              className="group block rounded-xl border border-border/60 bg-surface/40 p-5 transition-colors hover:bg-surface"
+              className="group block rounded-xl border border-border/60 bg-surface/40 p-5 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-surface hover:border-border"
             >
               <div className="meta mb-2 flex items-center justify-end gap-2">
                 next <ArrowRight className="h-3 w-3" />

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ArrowUpRight, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { KindChip } from "@/components/kind-chip";
 import { ReaderContainer } from "@/components/reader-container";
 import { readBookmarks, clearBookmark, type Bookmark } from "@/lib/bookmarks";
@@ -16,18 +17,98 @@ import { relativeTime } from "@/lib/format";
 export function ContinueReading() {
   const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<Bookmark[]>([]);
+  const [toast, setToast] = useState<{
+    bookmark: Bookmark;
+    timeoutId: ReturnType<typeof setTimeout>;
+  } | null>(null);
+
+  const toastRef = useRef<{
+    bookmark: Bookmark;
+    timeoutId: ReturnType<typeof setTimeout>;
+  } | null>(null);
 
   useEffect(() => {
-    setItems(readBookmarks());
+    toastRef.current = toast;
+  }, [toast]);
+
+  useEffect(() => {
+    const local = readBookmarks();
+    setItems(local);
     setMounted(true);
+    if (local.length === 0) return;
+
+    // Validate against the live DB — drop bookmarks whose underlying work was
+    // unpublished or trashed since they were saved. Fire-and-forget; on
+    // network error we keep the local list as-is.
+    const controller = new AbortController();
+    fetch("/api/bookmarks/validate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ keys: local.map((b) => b.key) }),
+      signal: controller.signal
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { ok: boolean; valid: string[] } | null) => {
+        if (!data?.ok) return;
+        const validSet = new Set(data.valid);
+        const stale = local.filter((b) => !validSet.has(b.key));
+        if (stale.length === 0) return;
+        stale.forEach((b) => clearBookmark(b.key));
+        setItems((prev) => prev.filter((b) => validSet.has(b.key)));
+      })
+      .catch(() => {
+        /* swallow — offline / abort */
+      });
+
+    return () => {
+      controller.abort();
+      // On unmount, flush any pending bookmark deletion
+      if (toastRef.current) {
+        clearTimeout(toastRef.current.timeoutId);
+        clearBookmark(toastRef.current.bookmark.key);
+      }
+    };
   }, []);
 
   if (!mounted) return null;
-  if (items.length === 0) return null;
+  if (items.length < 2) return null;
 
   const dismiss = (key: string) => {
-    clearBookmark(key);
-    setItems((prev) => prev.filter((b) => b.key !== key));
+    const itemToDismiss = items.find((x) => x.key === key);
+    if (!itemToDismiss) return;
+
+    // If there was already a pending toast, finalize that deletion
+    if (toast) {
+      clearTimeout(toast.timeoutId);
+      clearBookmark(toast.bookmark.key);
+    }
+
+    // Optimistically remove from items list
+    setItems((prev) => prev.filter((x) => x.key !== key));
+
+    // Schedule actual deletion
+    const timeoutId = setTimeout(() => {
+      clearBookmark(key);
+      setToast(null);
+    }, 5000);
+
+    setToast({
+      bookmark: itemToDismiss,
+      timeoutId
+    });
+  };
+
+  const undo = () => {
+    if (!toast) return;
+    clearTimeout(toast.timeoutId);
+
+    // Put item back into list and sort by visitedAt desc
+    setItems((prev) => {
+      const next = [...prev, toast.bookmark];
+      return next.sort((a, b) => b.visitedAt - a.visitedAt);
+    });
+
+    setToast(null);
   };
 
   return (
@@ -52,7 +133,7 @@ export function ContinueReading() {
           {items.map((b) => (
             <div
               key={b.key}
-              className="group relative rounded-xl border border-border/60 bg-surface/40 p-5 transition-colors hover:bg-surface"
+              className="group relative rounded-xl border border-border/60 bg-surface/40 p-5 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-surface hover:border-border"
             >
               <button
                 type="button"
@@ -96,8 +177,41 @@ export function ContinueReading() {
               </Link>
             </div>
           ))}
+          {/* Ghost tile to fill the trailing slot when count is odd */}
+          {items.length % 2 !== 0 && (
+            <Link
+              href="/works"
+              className="flex items-center justify-center rounded-xl border border-dashed border-border/60 p-5 font-sans text-sm text-muted transition-all duration-300 hover:border-border hover:text-ink hover:shadow-sm"
+            >
+              see all works →
+            </Link>
+          )}
         </div>
       </ReaderContainer>
+
+      {/* Undo Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.95 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed bottom-6 left-6 z-50 flex items-center justify-between gap-4 rounded-xl border border-border/80 bg-surface/95 px-4 py-3 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] backdrop-blur-xl max-w-sm w-[calc(100vw-3rem)] md:w-auto"
+          >
+            <span className="font-sans text-xs text-muted">
+              Removed <span className="font-serif italic text-ink font-medium">&ldquo;{toast.bookmark.title}&rdquo;</span> from shelf
+            </span>
+            <button
+              type="button"
+              onClick={undo}
+              className="font-sans text-xs font-bold text-accent hover:underline focus:outline-none"
+            >
+              Undo
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

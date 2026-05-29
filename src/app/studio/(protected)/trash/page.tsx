@@ -1,4 +1,4 @@
-import { FileText, Library, PenLine } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import type { ChapterRow, WorkRow } from "@/lib/supabase/types";
 import { relativeTime } from "@/lib/format";
@@ -8,10 +8,18 @@ type DeletedWork = Pick<
   WorkRow,
   "id" | "title" | "kind" | "deleted_at" | "word_count"
 >;
+// supabase-js types the embedded relation either as an object or as an array
+// depending on the FK introspection — handle both so the page never crashes.
+type EmbeddedParent = Pick<WorkRow, "title" | "deleted_at">;
 type DeletedChapter = Pick<
   ChapterRow,
   "id" | "title" | "series_id" | "number" | "deleted_at" | "word_count"
-> & { works: Pick<WorkRow, "title" | "deleted_at"> | null };
+> & { works: EmbeddedParent | EmbeddedParent[] | null };
+
+function parentOf(c: DeletedChapter): EmbeddedParent | null {
+  if (!c.works) return null;
+  return Array.isArray(c.works) ? c.works[0] ?? null : c.works;
+}
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Trash · Studio" };
@@ -49,7 +57,7 @@ export default async function TrashPage() {
   // Drop chapter rows that belong to an already-trashed series — restoring the
   // parent restores them, listing them separately would be misleading.
   const chapters = ((chaptersRes.data ?? []) as DeletedChapter[]).filter(
-    (c) => c.works?.deleted_at === null
+    (c) => parentOf(c)?.deleted_at === null
   );
 
   const total = works.length + chapters.length;
@@ -68,7 +76,7 @@ export default async function TrashPage() {
 
       {total === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/60 bg-surface/30 p-10 text-center">
-          <FileText className="mx-auto h-5 w-5 text-whisper" />
+          <Trash2 className="mx-auto h-5 w-5 text-whisper" />
           <p className="mt-4 font-italic italic text-lg text-muted">
             the trash is empty.
           </p>
@@ -81,7 +89,7 @@ export default async function TrashPage() {
               kind="work"
               workKind={w.kind}
               id={w.id}
-              icon={w.kind === "series" ? Library : PenLine}
+              icon={w.kind === "series" ? "library" : "pen-line"}
               primary={w.title || "Untitled"}
               secondary={w.kind}
               meta={`${w.word_count.toLocaleString()} words`}
@@ -93,9 +101,9 @@ export default async function TrashPage() {
               key={`c-${c.id}`}
               kind="chapter"
               id={c.id}
-              icon={FileText}
+              icon="file-text"
               primary={c.title || `Chapter ${c.number}`}
-              secondary={`${c.works?.title ?? "series"} · ch ${String(c.number).padStart(2, "0")}`}
+              secondary={`${parentOf(c)?.title ?? "series"} · ch ${String(c.number).padStart(2, "0")}`}
               meta={`${c.word_count.toLocaleString()} words`}
               deletedLabel={relativeTime(c.deleted_at ?? new Date())}
             />

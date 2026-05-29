@@ -3,6 +3,7 @@ import "./globals.css";
 import { fontVariables } from "@/lib/fonts";
 import { ThemeProvider, themeInitScript } from "@/components/theme-provider";
 import { ReaderStateHydrator } from "@/components/reader-state-hydrator";
+import { CommandPalette } from "@/components/command-palette";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://marahuyoph.vercel.app"),
@@ -46,7 +47,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         <ReaderStateHydrator />
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <CommandPalette />
+        </ThemeProvider>
       </body>
     </html>
   );

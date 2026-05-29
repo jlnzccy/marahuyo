@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { RotateCcw, Trash2 } from "lucide-react";
+import { FileText, Library, PenLine, RotateCcw, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/app/studio/(protected)/_components/confirm-dialog";
 import {
   restoreWork,
@@ -11,12 +11,20 @@ import {
 } from "@/app/studio/(protected)/_actions/works";
 import { cn } from "@/lib/cn";
 
+export type TrashIcon = "library" | "pen-line" | "file-text";
+
+const ICON_MAP = {
+  library: Library,
+  "pen-line": PenLine,
+  "file-text": FileText
+} as const;
+
 type Props = {
   kind: "work" | "chapter";
   /** Only set for works — drives the dialog wording. */
   workKind?: string;
   id: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: TrashIcon;
   primary: string;
   secondary: string;
   meta: string;
@@ -27,12 +35,13 @@ export function TrashRow({
   kind,
   workKind,
   id,
-  icon: Icon,
+  icon,
   primary,
   secondary,
   meta,
   deletedLabel
 }: Props) {
+  const Icon = ICON_MAP[icon];
   const [confirmPurge, setConfirmPurge] = useState(false);
   const [pending, startTransition] = useTransition();
 

@@ -18,6 +18,7 @@ type ChapterPageRow = Pick<
   | "word_count"
   | "reading_minutes"
   | "published_at"
+  | "deleted_at"
 >;
 
 type SeriesParent = Pick<WorkRow, "id" | "slug" | "title">;
@@ -50,7 +51,7 @@ export default async function StudioChapterEditorPage({
     supabase
       .from("chapters")
       .select(
-        "id, slug, series_id, number, title, subtitle, excerpt, status, body, poetry_mode, word_count, reading_minutes, published_at"
+        "id, slug, series_id, number, title, subtitle, excerpt, status, body, poetry_mode, word_count, reading_minutes, published_at, deleted_at"
       )
       .eq("id", chapterId)
       .eq("series_id", id)
@@ -85,5 +86,5 @@ export default async function StudioChapterEditorPage({
     publishedAt: chapter.published_at ?? null
   };
 
-  return <ChapterEditorForm initial={initial} />;
+  return <ChapterEditorForm initial={initial} inTrash={chapter.deleted_at !== null} />;
 }

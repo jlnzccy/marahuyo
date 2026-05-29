@@ -22,6 +22,7 @@ type EditorRow = Pick<
   | "reading_minutes"
   | "published_at"
   | "scheduled_at"
+  | "deleted_at"
 >;
 
 export const dynamic = "force-dynamic";
@@ -47,7 +48,7 @@ export default async function StudioWorkEditorPage({ params }: { params: Promise
     supabase
       .from("works")
       .select(
-        "id, slug, title, subtitle, kind, status, excerpt, body, tags, cover_image, poetry_mode, featured, word_count, reading_minutes, published_at, scheduled_at"
+        "id, slug, title, subtitle, kind, status, excerpt, body, tags, cover_image, poetry_mode, featured, word_count, reading_minutes, published_at, scheduled_at, deleted_at"
       )
       .eq("id", id)
       .maybeSingle()
@@ -76,5 +77,5 @@ export default async function StudioWorkEditorPage({ params }: { params: Promise
     scheduledAt: data.scheduled_at ?? null
   };
 
-  return <WorkEditorForm initial={initial} knownTags={knownTags} />;
+  return <WorkEditorForm initial={initial} knownTags={knownTags} inTrash={data.deleted_at !== null} />;
 }

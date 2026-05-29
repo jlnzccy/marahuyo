@@ -7,7 +7,11 @@ import { relativeTime } from "@/lib/format";
 type SeriesListRow = Pick<
   WorkRow,
   "id" | "slug" | "title" | "status" | "updated_at"
-> & { chapters: { id: string; status: string }[] | null };
+> & {
+  chapters:
+    | { id: string; status: string; deleted_at: string | null }[]
+    | null;
+};
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Series · Studio" };
@@ -16,7 +20,9 @@ export default async function StudioSeriesList() {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("works")
-    .select("id, slug, title, status, updated_at, chapters(id, status)")
+    .select(
+      "id, slug, title, status, updated_at, chapters(id, status, deleted_at)"
+    )
     .eq("kind", "series")
     .is("deleted_at", null)
     .order("updated_at", { ascending: false })
@@ -72,8 +78,11 @@ export default async function StudioSeriesList() {
 
       <ul className="divide-y divide-border/60">
         {rows.map((row) => {
-          const total = row.chapters?.length ?? 0;
-          const published = (row.chapters ?? []).filter(
+          const liveChapters = (row.chapters ?? []).filter(
+            (c) => c.deleted_at === null
+          );
+          const total = liveChapters.length;
+          const published = liveChapters.filter(
             (c) => c.status === "published"
           ).length;
           return (

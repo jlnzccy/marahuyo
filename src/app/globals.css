@@ -67,6 +67,16 @@
     @apply font-mono uppercase tracking-meta text-whisper;
     font-size: 11px;
   }
+
+  /* Hide native clear (X) + decoration on type="search" — we render our own. */
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
 }
 
 /* =========================================================
@@ -245,6 +255,18 @@
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Premium sliding underline transition */
+  .link-underline {
+    @apply relative pb-0.5;
+  }
+  .link-underline::after {
+    content: '';
+    @apply absolute bottom-0 left-0 h-[1px] w-full origin-bottom-right scale-x-0 bg-current transition-transform duration-300;
+  }
+  .link-underline:hover::after {
+    @apply origin-bottom-left scale-x-100;
   }
 }
 

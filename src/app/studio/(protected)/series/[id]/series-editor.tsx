@@ -14,11 +14,13 @@ import {
 } from "lucide-react";
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   closestCenter,
   useSensor,
   useSensors,
-  type DragEndEvent
+  type DragEndEvent,
+  type DragStartEvent
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -97,6 +99,12 @@ export function SeriesEditor({ initial }: { initial: InitialSeries }) {
   const [newChapterTitle, setNewChapterTitle] = useState("");
   const [creatingChapter, startCreate] = useTransition();
   const [reorderPending, startReorder] = useTransition();
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const activeChapter = useMemo(
+    () => chapters.find((c) => c.id === activeId),
+    [chapters, activeId]
+  );
 
   // ---------- Save plumbing ----------
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -207,8 +215,17 @@ export function SeriesEditor({ initial }: { initial: InitialSeries }) {
   // ---------- Chapter drag-and-drop ----------
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
+
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+  }, []);
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      setActiveId(null);
       const { active, over } = event;
       if (!over || active.id === over.id) return;
 
@@ -380,6 +397,8 @@ export function SeriesEditor({ initial }: { initial: InitialSeries }) {
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragCancel={handleDragCancel}
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
@@ -396,6 +415,32 @@ export function SeriesEditor({ initial }: { initial: InitialSeries }) {
                     ))}
                   </ul>
                 </SortableContext>
+                <DragOverlay adjustScale={false}>
+                  {activeChapter ? (
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border/80 bg-surface shadow-2xl scale-[1.02] rotate-1 cursor-grabbing select-none">
+                      <button
+                        type="button"
+                        className="cursor-grabbing touch-none rounded p-1 text-ink"
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </button>
+                      <span className="w-8 font-mono text-xs text-whisper">
+                        {String(activeChapter.number).padStart(2, "0")}
+                      </span>
+                      <span className="flex-1 truncate font-serif text-base text-ink">
+                        {activeChapter.title || "Untitled chapter"}
+                      </span>
+                      {activeChapter.status === "draft" && (
+                        <span className="rounded-full border border-border/60 bg-canvas px-2 py-0.5 font-mono text-[10px] uppercase tracking-meta text-muted">
+                          draft
+                        </span>
+                      )}
+                      <span className="meta hidden sm:inline">
+                        {activeChapter.wordCount.toLocaleString()} w
+                      </span>
+                    </div>
+                  ) : null}
+                </DragOverlay>
               </DndContext>
             )}
           </section>
@@ -502,7 +547,7 @@ function SortableChapterRow({
       style={style}
       className={cn(
         "flex items-center gap-3 px-3 py-3 transition-colors hover:bg-surface/60",
-        isDragging && "bg-surface shadow-lg"
+        isDragging && "opacity-30 bg-surface/20 border border-dashed border-border/80"
       )}
     >
       <button

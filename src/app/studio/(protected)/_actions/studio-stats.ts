@@ -13,6 +13,7 @@ export type StudioStats = {
   draftCount: number;
   publishedCount: number;
   totalWords: number;
+  trashCount: number;
   recentEdits: RecentEdit[];
 };
 
@@ -25,18 +26,23 @@ export async function getStudioStats(): Promise<StudioStats> {
 
   /* Fetch all works — the total row count is small, so a single query
      aggregated in JS is simpler than multiple Supabase count queries. */
-  const [worksRes, recentRes] = await Promise.all([
+  const [worksRes, recentRes, trashRes] = await Promise.all([
     sb.from("works").select("status, word_count").is("deleted_at", null),
     sb
       .from("works")
       .select("id, title, kind, status, updated_at")
       .is("deleted_at", null)
       .order("updated_at", { ascending: false })
-      .limit(5)
+      .limit(5),
+    sb
+      .from("works")
+      .select("id", { count: "exact", head: true })
+      .not("deleted_at", "is", null)
   ]);
 
   if (worksRes.error) throw new Error(`getStudioStats works: ${worksRes.error.message}`);
   if (recentRes.error) throw new Error(`getStudioStats recent: ${recentRes.error.message}`);
+  if (trashRes.error) throw new Error(`getStudioStats trash: ${trashRes.error.message}`);
 
   const rows = (worksRes.data ?? []) as { status: string; word_count: number }[];
 
@@ -66,5 +72,5 @@ export async function getStudioStats(): Promise<StudioStats> {
     updatedAt: r.updated_at
   }));
 
-  return { draftCount, publishedCount, totalWords, recentEdits };
+  return { draftCount, publishedCount, totalWords, trashCount: trashRes.count ?? 0, recentEdits };
 }

@@ -13,7 +13,7 @@ export function LoginForm() {
     <form action={formAction} className="space-y-4">
       <label className="block">
         <span className="meta">username</span>
-        <div className="mt-1.5 flex items-center gap-2 rounded-md border border-border/80 bg-canvas px-3 py-2 focus-within:border-accent">
+        <div className="mt-1.5 flex items-center gap-2 rounded-md border border-border/80 bg-canvas px-3 py-2 transition-all duration-300 focus-within:border-accent/80 focus-within:ring-4 focus-within:ring-accent/10">
           <User className="h-3.5 w-3.5 text-whisper" />
           <input
             type="text"
@@ -29,7 +29,7 @@ export function LoginForm() {
 
       <label className="block">
         <span className="meta">password</span>
-        <div className="mt-1.5 flex items-center gap-2 rounded-md border border-border/80 bg-canvas px-3 py-2 focus-within:border-accent">
+        <div className="mt-1.5 flex items-center gap-2 rounded-md border border-border/80 bg-canvas px-3 py-2 transition-all duration-300 focus-within:border-accent/80 focus-within:ring-4 focus-within:ring-accent/10">
           <Lock className="h-3.5 w-3.5 text-whisper" />
           <input
             type="password"

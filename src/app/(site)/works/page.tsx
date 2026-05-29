@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ReaderContainer } from "@/components/reader-container";
-import { FadeUp } from "@/components/motion";
+import { FadeUp, Stagger, StaggerItem } from "@/components/motion";
 import { WorkRow } from "@/components/work-row";
 import { getAllPublishedWorks } from "@/lib/works";
 import { cn } from "@/lib/cn";
@@ -91,19 +91,21 @@ export default async function WorksPage({
 
         <div className="my-14 hairline" aria-hidden="true" />
 
-        <FadeUp delay={0.1}>
-          <div className="mx-auto max-w-3xl">
-            {filtered.length === 0 ? (
-              <p className="py-16 text-center font-italic italic text-xl text-muted">
-                {activeTag
-                  ? `nothing tagged "${activeTag}" yet.`
-                  : "the archive is quiet — soon."}
-              </p>
-            ) : (
-              filtered.map((w) => <WorkRow key={w.id} work={w} />)
-            )}
-          </div>
-        </FadeUp>
+        <Stagger className="mx-auto max-w-3xl" staggerChildren={0.05}>
+          {filtered.length === 0 ? (
+            <p className="py-16 text-center font-italic italic text-xl text-muted">
+              {activeTag
+                ? `nothing tagged "${activeTag}" yet.`
+                : "the archive is quiet — soon."}
+            </p>
+          ) : (
+            filtered.map((w) => (
+              <StaggerItem key={w.id}>
+                <WorkRow work={w} />
+              </StaggerItem>
+            ))
+          )}
+        </Stagger>
 
         <div className="mt-20 text-center">
           <Link

@@ -1,15 +1,7 @@
-import Link from "next/link";
-import { LogOut, FileText, Library, PenLine, Settings, Trash2 } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
 import { signOut } from "@/app/studio/actions";
-
-const NAV = [
-  { href: "/studio", label: "Overview", icon: FileText, exact: true },
-  { href: "/studio/works", label: "Works", icon: PenLine },
-  { href: "/studio/series", label: "Series", icon: Library },
-  { href: "/studio/trash", label: "Trash", icon: Trash2 },
-  { href: "/studio/settings", label: "Settings", icon: Settings }
-];
+import { StudioNavLinks } from "./studio-nav-links";
 
 export function StudioChrome({
   username,
@@ -38,20 +30,11 @@ export function StudioChrome({
             </form>
           </div>
         </div>
-        <nav aria-label="Studio" className="mx-auto flex max-w-6xl items-center gap-1 px-3 pb-2 md:px-6">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-sans text-sm text-muted transition-colors hover:bg-surface hover:text-ink"
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav aria-label="Studio" className="relative mx-auto max-w-6xl">
+          <div className="flex overflow-x-auto scrollbar-none flex-nowrap items-center gap-1 px-3 pb-2 md:px-6">
+            <StudioNavLinks />
+          </div>
+          <div className="pointer-events-none absolute bottom-2 right-0 top-0 w-8 bg-gradient-to-l from-canvas to-transparent md:hidden" />
         </nav>
       </header>
       <main id="main-content" className="mx-auto max-w-6xl px-5 py-10 md:px-8">{children}</main>

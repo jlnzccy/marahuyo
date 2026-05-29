@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Eye, Trash2, Send, Undo2, ChevronLeft, Star, History } from "lucide-react";
+import { Eye, Trash2, Send, Undo2, ChevronLeft, Star, History, ArchiveRestore } from "lucide-react";
 import {
   updateWork,
   publishWork,
@@ -45,9 +45,10 @@ const SAVE_DEBOUNCE_MS = 1200;
 type Props = {
   initial: InitialWork;
   knownTags: string[];
+  inTrash?: boolean;
 };
 
-export function WorkEditorForm({ initial, knownTags }: Props) {
+export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
   // ----- Local form state -----
   const [title, setTitle] = useState(initial.title);
   const [subtitle, setSubtitle] = useState(initial.subtitle);
@@ -306,6 +307,22 @@ export function WorkEditorForm({ initial, knownTags }: Props) {
           </div>
         </div>
       </header>
+
+      {/* ---------- Trash banner ---------- */}
+      {inTrash && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3">
+          <ArchiveRestore className="h-4 w-4 shrink-0 text-amber-600" />
+          <p className="flex-1 font-sans text-sm text-amber-800">
+            This work is in Trash — restore it before publishing or sharing.
+          </p>
+          <Link
+            href="/studio/trash"
+            className="font-sans text-xs font-medium text-amber-700 underline underline-offset-2 hover:text-amber-900"
+          >
+            Go to Trash
+          </Link>
+        </div>
+      )}
 
       {/* ---------- Body ---------- */}
       <div className="grid gap-10 lg:grid-cols-[1fr_300px]">

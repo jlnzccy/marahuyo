@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Search as SearchIcon } from "lucide-react";
 import { ReaderContainer } from "@/components/reader-container";
 import { FadeUp } from "@/components/motion";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { search } from "@/lib/search";
+import { SearchForm } from "./search-form";
 
 export const metadata = {
-  title: "Search — marahuyo"
+  title: "Search"
 };
 
 type SearchParams = Promise<{ q?: string }>;
@@ -32,33 +32,7 @@ export default async function SearchPage({
           </h1>
         </FadeUp>
 
-        <form action="/search" method="get" className="mt-10">
-          <label
-            htmlFor="search-query"
-            className="sr-only"
-          >
-            Search the archive
-          </label>
-          <div className="flex items-center gap-2 rounded-full border border-border/80 bg-surface/40 px-4 py-3 focus-within:border-ink">
-            <SearchIcon className="h-4 w-4 text-whisper" aria-hidden="true" />
-            <input
-              id="search-query"
-              type="search"
-              name="q"
-              defaultValue={query}
-              placeholder="a word, a name, a half-remembered line…"
-              autoFocus
-              autoComplete="off"
-              className="w-full bg-transparent font-serif text-lg text-ink placeholder:text-whisper focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-ink px-3 py-1 font-sans text-xs text-canvas transition-opacity hover:opacity-95"
-            >
-              Search
-            </button>
-          </div>
-        </form>
+        <SearchForm initialQuery={query} />
 
         <div className="mt-12">
           {!query && (

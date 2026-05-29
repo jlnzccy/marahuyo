@@ -62,7 +62,7 @@ export default async function StudioOverview() {
             <Link
               key={c.href}
               href={c.href}
-              className="group rounded-xl border border-border/60 bg-surface/40 p-5 transition-colors hover:bg-surface"
+              className="group rounded-xl border border-border/60 bg-surface/40 p-5 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-surface hover:border-border"
             >
               <Icon className="h-4 w-4 text-muted transition-colors group-hover:text-ink" />
               <div className="mt-3 font-serif text-xl font-bold text-ink">{c.title}</div>
@@ -90,6 +90,19 @@ export default async function StudioOverview() {
           </div>
         ))}
       </div>
+
+      {/* Trash count nudge */}
+      {stats.trashCount > 0 && (
+        <Link
+          href="/studio/trash"
+          className="flex items-center gap-2 rounded-lg border border-border/40 bg-surface/20 px-4 py-2.5 font-sans text-sm text-muted transition-colors hover:bg-surface hover:text-ink"
+        >
+          <span className="font-mono text-xs">
+            {stats.trashCount} {stats.trashCount === 1 ? "item" : "items"} in trash
+          </span>
+          <span className="ml-auto text-xs">view →</span>
+        </Link>
+      )}
 
       {/* Recent activity */}
       {stats.recentEdits.length > 0 && (

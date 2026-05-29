@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminSupabase } from "@/lib/supabase/admin";
+import { validateKeys } from "@/lib/validate-keys";
 import type { ReaderStateInsert, ReaderStateRow } from "@/lib/supabase/types";
 
 /**
@@ -76,8 +77,33 @@ export async function GET(req: Request) {
     );
   }
 
+  const rows = data ?? [];
+
+  // Prune stale rows whose underlying work/chapter has been trashed or
+  // unpublished. Fire-and-forget delete; we still return only valid entries.
+  if (rows.length > 0) {
+    const allKeys = rows.map((r) => r.key);
+    const validSet = await validateKeys(allKeys);
+    const staleKeys = allKeys.filter((k) => !validSet.has(k));
+
+    if (staleKeys.length > 0) {
+      // Delete stale rows from DB — ignore errors, this is best-effort cleanup.
+      void supabase
+        .from("reader_state")
+        .delete()
+        .eq("device_id", deviceId)
+        .in("key", staleKeys);
+    }
+
+    const validRows = rows.filter((r) => validSet.has(r.key));
+    return NextResponse.json(
+      { ok: true, entries: validRows },
+      { headers: corsHeaders() }
+    );
+  }
+
   return NextResponse.json(
-    { ok: true, entries: data ?? [] },
+    { ok: true, entries: rows },
     { headers: corsHeaders() }
   );
 }

@@ -148,9 +148,9 @@ export function ReaderShell({
             );
           })()}
 
-          {(prev || next) && (
+          {(prev || next || index) && (
             <FadeUp delay={0.1}>
-              <ReaderFoot prev={prev ?? null} next={next ?? null} index={null} />
+              <ReaderFoot prev={prev ?? null} next={next ?? null} index={index ?? null} />
             </FadeUp>
           )}
         </ReaderContainer>

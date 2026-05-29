@@ -93,4 +93,34 @@ export const staggerChild = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE } }
 };
 
+type StaggerItemProps =
+  | (HTMLMotionProps<"div"> & { as?: "div"; children?: ReactNode })
+  | (HTMLMotionProps<"li"> & { as: "li"; children?: ReactNode });
+
+export function StaggerItem({ as = "div", children, className, ...rest }: StaggerItemProps) {
+  const reduced = useReducedMotion();
+  if (reduced) {
+    if (as === "li") {
+      return <li className={cn(className)}>{children}</li>;
+    }
+    return <div className={cn(className)}>{children}</div>;
+  }
+
+  if (as === "li") {
+    const liProps = rest as HTMLMotionProps<"li">;
+    return (
+      <motion.li variants={staggerChild} className={cn(className)} {...liProps}>
+        {children}
+      </motion.li>
+    );
+  }
+
+  const divProps = rest as HTMLMotionProps<"div">;
+  return (
+    <motion.div variants={staggerChild} className={cn(className)} {...divProps}>
+      {children}
+    </motion.div>
+  );
+}
+
 export { EASE };

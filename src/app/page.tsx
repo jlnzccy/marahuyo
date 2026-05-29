@@ -8,7 +8,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { FeaturedCard } from "@/components/featured-card";
 import { WorkRow, workHref } from "@/components/work-row";
 import { ContinueReading } from "@/components/continue-reading";
-import { FadeUp } from "@/components/motion";
+import { FadeUp, Stagger, StaggerItem } from "@/components/motion";
 import { getFeaturedWork, getRecentDispatches, getRandomEpigraph } from "@/lib/works";
 import { getSiteSettings } from "@/lib/settings";
 
@@ -121,11 +121,13 @@ export default async function HomePage() {
                 </Link>
               </div>
 
-              <div className="mx-auto max-w-4xl">
+              <Stagger className="mx-auto max-w-4xl" staggerChildren={0.06}>
                 {recent.map((work) => (
-                  <WorkRow key={work.id} work={work} />
+                  <StaggerItem key={work.id}>
+                    <WorkRow work={work} />
+                  </StaggerItem>
                 ))}
-              </div>
+              </Stagger>
 
               <div className="mt-12 text-center">
                 <Link

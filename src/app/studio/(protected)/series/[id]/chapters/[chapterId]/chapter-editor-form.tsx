@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Eye, Trash2, Send, Undo2, ChevronLeft } from "lucide-react";
+import { Eye, Trash2, Send, Undo2, ChevronLeft, ArchiveRestore } from "lucide-react";
 import {
   updateChapter,
   publishChapter,
@@ -39,7 +39,7 @@ export type InitialChapter = {
 
 const SAVE_DEBOUNCE_MS = 1200;
 
-export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
+export function ChapterEditorForm({ initial, inTrash = false }: { initial: InitialChapter; inTrash?: boolean }) {
   const [title, setTitle] = useState(initial.title);
   const [subtitle, setSubtitle] = useState(initial.subtitle);
   const [excerpt, setExcerpt] = useState(initial.excerpt);
@@ -251,6 +251,22 @@ export function ChapterEditorForm({ initial }: { initial: InitialChapter }) {
           </div>
         </div>
       </header>
+
+      {/* ---------- Trash banner ---------- */}
+      {inTrash && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3">
+          <ArchiveRestore className="h-4 w-4 shrink-0 text-amber-600" />
+          <p className="flex-1 font-sans text-sm text-amber-800">
+            This chapter is in Trash — restore it before publishing or sharing.
+          </p>
+          <Link
+            href="/studio/trash"
+            className="font-sans text-xs font-medium text-amber-700 underline underline-offset-2 hover:text-amber-900"
+          >
+            Go to Trash
+          </Link>
+        </div>
+      )}
 
       <div className="grid gap-10 lg:grid-cols-[1fr_300px]">
         <div className="space-y-6">

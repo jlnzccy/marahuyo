@@ -43,7 +43,6 @@ export function ThemeSwitcher({ floating = true, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const themeButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
-
   useEffect(() => {
     if (!open) return;
     function onClick(e: MouseEvent) {
@@ -94,6 +93,8 @@ export function ThemeSwitcher({ floating = true, className }: Props) {
      surfaces when they're in `auto`). Falls back to the resolved theme. */
   const ActiveIcon =
     preference === "auto" ? ICONS.auto : RESOLVED_ICONS[theme];
+
+
 
   return (
     <div

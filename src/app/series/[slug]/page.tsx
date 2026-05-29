@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { ReaderContainer } from "@/components/reader-container";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { KindChip } from "@/components/kind-chip";
-import { FadeUp } from "@/components/motion";
+import { FadeUp, Stagger, StaggerItem } from "@/components/motion";
 import { getPublishedSeriesSlugs, getSeriesBySlug } from "@/lib/works";
 
 type Params = { slug: string };
@@ -88,35 +88,37 @@ export default async function SeriesPage({ params }: { params: Promise<Params> }
                 no chapters yet — soon.
               </p>
             ) : (
-              <ol className="mt-6 max-w-3xl">
-                {published.map((c) => (
-                  <li key={c.id}>
-                    <Link
-                      href={`/series/${series.slug}/${c.slug}`}
-                      className="group block border-t border-border/60 py-5 transition-colors hover:bg-surface/40"
-                    >
-                      <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:gap-8">
-                        <div className="meta md:w-24 md:shrink-0">
-                          Ch. {String(c.number).padStart(2, "0")}
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-serif text-xl font-bold leading-snug text-ink transition-transform duration-500 ease-out-expo group-hover:translate-x-0.5">
-                            {c.title}
+              <Stagger className="mt-6 max-w-3xl" staggerChildren={0.05}>
+                <ol>
+                  {published.map((c) => (
+                    <StaggerItem as="li" key={c.id}>
+                      <Link
+                        href={`/series/${series.slug}/${c.slug}`}
+                        className="group block border-t border-border/60 py-5 transition-colors hover:bg-surface/40"
+                      >
+                        <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:gap-8">
+                          <div className="meta md:w-24 md:shrink-0">
+                            Ch. {String(c.number).padStart(2, "0")}
                           </div>
-                          {c.subtitle && (
-                            <div className="mt-1 font-italic italic text-base text-muted">
-                              {c.subtitle}
+                          <div className="flex-1">
+                            <div className="font-serif text-xl font-bold leading-snug text-ink transition-transform duration-500 ease-out-expo group-hover:translate-x-0.5">
+                              {c.title}
                             </div>
-                          )}
+                            {c.subtitle && (
+                              <div className="mt-1 font-italic italic text-base text-muted">
+                                {c.subtitle}
+                              </div>
+                            )}
+                          </div>
+                          <div className="meta md:w-24 md:text-right">
+                            {c.readingMinutes} min
+                          </div>
                         </div>
-                        <div className="meta md:w-24 md:text-right">
-                          {c.readingMinutes} min
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ol>
+                      </Link>
+                    </StaggerItem>
+                  ))}
+                </ol>
+              </Stagger>
             )}
           </FadeUp>
         </ReaderContainer>

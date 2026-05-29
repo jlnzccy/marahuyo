@@ -32,7 +32,7 @@ export function ContactLinks({ links }: { links: ContactLink[] }) {
               href={l.href}
               target={l.href.startsWith("http") ? "_blank" : undefined}
               rel={l.href.startsWith("http") ? "noreferrer" : undefined}
-              className="group flex items-center gap-5 rounded-xl border border-border/60 bg-surface/40 p-5 transition-colors hover:bg-surface"
+              className="group flex items-center gap-5 rounded-xl border border-border/60 bg-surface/40 p-5 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-surface hover:border-border"
             >
               <span className="grid h-11 w-11 place-items-center rounded-md border border-border/60 bg-canvas">
                 <Icon className="h-4 w-4 text-ink" />
