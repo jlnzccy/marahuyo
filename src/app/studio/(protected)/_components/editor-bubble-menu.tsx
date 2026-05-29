@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { Bold, Italic, Link as LinkIcon } from "lucide-react";
+import { Bold, Italic, Link as LinkIcon, StickyNote } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { PromptDialog } from "./prompt-dialog";
 
@@ -45,12 +45,41 @@ function BubbleButton({
 export function EditorBubbleMenu({ editor }: Props) {
   const [linkPromptOpen, setLinkPromptOpen] = useState(false);
   const [linkDefault, setLinkDefault] = useState("");
+  const [notePromptOpen, setNotePromptOpen] = useState(false);
+  const [noteDefault, setNoteDefault] = useState("");
 
   const openLinkPrompt = () => {
     const prev = editor.getAttributes("link").href ?? "";
     setLinkDefault(prev || "https://");
     setLinkPromptOpen(true);
   };
+
+  const openNotePrompt = () => {
+    setNoteDefault(editor.getAttributes("marginalia").note ?? "");
+    setNotePromptOpen(true);
+  };
+
+  const handleNoteConfirm = useCallback(
+    (value: string) => {
+      if (value === "") {
+        editor.chain().focus().extendMarkRange("marginalia").unsetMarginalia().run();
+      } else {
+        editor
+          .chain()
+          .focus()
+          .extendMarkRange("marginalia")
+          .setMarginalia({ note: value })
+          .run();
+      }
+      setNotePromptOpen(false);
+    },
+    [editor]
+  );
+
+  const handleNoteCancel = useCallback(() => {
+    setNotePromptOpen(false);
+    editor.chain().focus().run();
+  }, [editor]);
 
   const handleLinkConfirm = useCallback(
     (value: string) => {
@@ -99,6 +128,12 @@ export function EditorBubbleMenu({ editor }: Props) {
           active={editor.isActive("link")}
           onClick={openLinkPrompt}
         />
+        <BubbleButton
+          label="Margin note"
+          icon={StickyNote}
+          active={editor.isActive("marginalia")}
+          onClick={openNotePrompt}
+        />
       </BubbleMenu>
 
       {/* Themed link prompt — replaces window.prompt */}
@@ -111,6 +146,18 @@ export function EditorBubbleMenu({ editor }: Props) {
         confirmLabel="Set link"
         onConfirm={handleLinkConfirm}
         onCancel={handleLinkCancel}
+      />
+
+      {/* Margin note — the selected text becomes the anchor, this is the note */}
+      <PromptDialog
+        open={notePromptOpen}
+        title="Margin note"
+        description="A quiet aside shown in the margin. Leave empty and confirm to remove it."
+        placeholder="An aside for the reader…"
+        defaultValue={noteDefault}
+        confirmLabel="Save note"
+        onConfirm={handleNoteConfirm}
+        onCancel={handleNoteCancel}
       />
     </>
   );

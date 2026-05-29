@@ -9,6 +9,7 @@ import CharacterCount from "@tiptap/extension-character-count";
 import { useEffect, useRef } from "react";
 import { PoetryNode } from "./extensions/poetry-node";
 import { EmbedNode } from "./extensions/embed-node";
+import { MarginaliaMark } from "./extensions/marginalia-mark";
 import { EditorToolbar } from "./editor-toolbar";
 import { EditorBubbleMenu } from "./editor-bubble-menu";
 
@@ -65,7 +66,8 @@ export function Editor({ initialContent, onChange, placeholder, uploadPrefix }: 
       Image.configure({ inline: false, allowBase64: false }),
       CharacterCount,
       PoetryNode,
-      EmbedNode
+      EmbedNode,
+      MarginaliaMark
     ],
     content: initialContent || "",
     editorProps: {

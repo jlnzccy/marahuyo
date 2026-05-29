@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ReaderContainer } from "@/components/reader-container";
@@ -7,14 +6,18 @@ import { SiteFooter } from "@/components/site-footer";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { ReadingProgress } from "@/components/reading-progress";
 import { ReaderFoot } from "@/components/reader-foot";
-import { KindChip } from "@/components/kind-chip";
+import { CoverHero } from "@/components/cover-hero";
 import { ReaderActions } from "@/components/reader-actions";
+import { QuoteShare } from "@/components/quote-share";
 import { BookmarkTracker } from "@/components/bookmark-tracker";
+import { ResumePill } from "@/components/resume-pill";
+import { Marginalia } from "@/components/marginalia";
 import { TableOfContents } from "@/components/table-of-contents";
 import { FadeUp } from "@/components/motion";
 import { cn } from "@/lib/cn";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { parseHeadings } from "@/lib/toc";
+import { getSiteSettings } from "@/lib/settings";
 import type { WorkKind } from "@/types/content";
 
 type FootLink = { href: string; label: string; hint?: string };
@@ -46,7 +49,7 @@ type Props = {
   bookmark?: Bookmark;
 };
 
-export function ReaderShell({
+export async function ReaderShell({
   kind,
   eyebrow,
   title,
@@ -61,16 +64,20 @@ export function ReaderShell({
   likeKey,
   bookmark
 }: Props) {
+  const { author } = await getSiteSettings();
   return (
     <>
       {bookmark && (
-        <BookmarkTracker
-          key_={bookmark.key}
-          href={bookmark.href}
-          title={bookmark.title}
-          kind={bookmark.kind}
-          subtitle={bookmark.subtitle}
-        />
+        <>
+          <BookmarkTracker
+            key_={bookmark.key}
+            href={bookmark.href}
+            title={bookmark.title}
+            kind={bookmark.kind}
+            subtitle={bookmark.subtitle}
+          />
+          <ResumePill bookmarkKey={bookmark.key} />
+        </>
       )}
       <ReadingProgress />
       <SiteHeader scrollAware />
@@ -88,47 +95,15 @@ export function ReaderShell({
             </FadeUp>
           )}
 
-          <FadeUp delay={0.05}>
-            <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <KindChip kind={kind} />
-              {eyebrow && <span className="meta">{eyebrow}</span>}
-              {meta && (
-                <>
-                  <span aria-hidden="true" className="meta text-whisper">·</span>
-                  <span className="meta">{meta}</span>
-                </>
-              )}
-            </div>
-          </FadeUp>
-
-          <FadeUp delay={0.1}>
-            <h1 className="font-serif text-4xl font-bold leading-tight text-balance md:text-5xl">
-              {title}
-            </h1>
-          </FadeUp>
-
-          {subtitle && (
-            <FadeUp delay={0.18}>
-              <p className="mt-6 font-serif italic text-sm text-muted/80 text-pretty border-l-2 border-muted/20 pl-4 max-w-prose">
-                {subtitle}
-              </p>
-            </FadeUp>
-          )}
-
-          {coverImage && (
-            <FadeUp delay={0.28}>
-              <figure className="relative mt-10 aspect-[16/10] w-full overflow-hidden rounded-xl border border-border/60 bg-surface md:-mx-12 md:w-auto">
-                <Image
-                  src={coverImage}
-                  alt={`Cover for ${title}`}
-                  fill
-                  sizes="(min-width: 768px) 760px, 100vw"
-                  className="object-cover"
-                  priority
-                />
-              </figure>
-            </FadeUp>
-          )}
+          <CoverHero
+            kind={kind}
+            title={title}
+            eyebrow={eyebrow}
+            meta={meta}
+            subtitle={subtitle}
+            coverImage={coverImage}
+            priority
+          />
 
           <div className="my-12 hairline" aria-hidden="true" />
 
@@ -144,6 +119,7 @@ export function ReaderShell({
                     dangerouslySetInnerHTML={{ __html: html }}
                   />
                 </FadeUp>
+                <Marginalia />
               </>
             );
           })()}
@@ -156,6 +132,7 @@ export function ReaderShell({
         </ReaderContainer>
       </main>
       <ReaderActions title={title} subtitle={subtitle} likeKey={likeKey} />
+      <QuoteShare title={title} author={author.name || undefined} />
       <SiteFooter />
       <ThemeSwitcher />
     </>

@@ -29,6 +29,9 @@ export function SiteFooter() {
               <Link href="/contact" className="hover:text-ink transition-colors link-underline w-fit">
                 Contact
               </Link>
+              <Link href="/colophon" className="hover:text-ink transition-colors link-underline w-fit">
+                Colophon
+              </Link>
               <a
                 href="/feed.xml"
                 className="hover:text-ink transition-colors link-underline w-fit"

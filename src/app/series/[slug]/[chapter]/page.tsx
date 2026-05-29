@@ -29,6 +29,7 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
   const idx = siblings.findIndex((ch) => ch.id === c.id);
   const prevCh = idx > 0 ? siblings[idx - 1] : null;
   const nextCh = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1] : null;
+  const position = idx >= 0 ? `${idx + 1} of ${siblings.length}` : null;
 
   const date = c.publishedAt
     ? new Date(c.publishedAt).toLocaleDateString("en-US", {
@@ -44,7 +45,7 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
       eyebrow={`${series.title} · chapter ${String(c.number).padStart(2, "0")}${date ? " · " + date : ""}`}
       title={c.title}
       subtitle={c.subtitle}
-      meta={`${c.readingMinutes} min · ${c.wordCount.toLocaleString()} words`}
+      meta={`${position ? position + " · " : ""}${c.readingMinutes} min · ${c.wordCount.toLocaleString()} words`}
       body={c.body}
       poetryMode={c.poetryMode}
       coverImage={series.coverImage}
