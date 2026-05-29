@@ -7,6 +7,7 @@ const nextConfig = {
       { protocol: "https", hostname: "*.supabase.co" }
     ]
   },
+  serverExternalPackages: ["isomorphic-dompurify"],
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
     serverActions: {
