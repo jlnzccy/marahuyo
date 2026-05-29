@@ -1,4 +1,4 @@
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtmlLib from "sanitize-html";
 
 const ALLOWED_TAGS = [
   "p", "h1", "h2", "h3", "h4", "h5", "h6",
@@ -8,31 +8,13 @@ const ALLOWED_TAGS = [
   "img", "iframe",
 ];
 
-const ALLOWED_ATTR = [
-  "href", "src", "alt", "class", "id", "target", "rel",
+const COMMON_ATTRS = [
+  "class", "id", "style",
   "data-node-type", "data-type",
-  "sandbox", "allow", "allowfullscreen",
-  "width", "height", "loading",
-  "start", "type", "style",
+  "data-*",
 ];
 
 const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-presentation allow-popups";
-
-let hookRegistered = false;
-function ensureIframeSandboxHook() {
-  if (hookRegistered) return;
-  DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-    if (node.nodeName === "IFRAME") {
-      const el = node as HTMLIFrameElement;
-      if (!el.hasAttribute("sandbox")) el.setAttribute("sandbox", IFRAME_SANDBOX);
-      if (!el.hasAttribute("loading")) el.setAttribute("loading", "lazy");
-      if (!el.hasAttribute("referrerpolicy")) {
-        el.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
-      }
-    }
-  });
-  hookRegistered = true;
-}
 
 /**
  * Sanitize HTML produced by the TipTap editor before rendering via
@@ -40,10 +22,36 @@ function ensureIframeSandboxHook() {
  * a restrictive sandbox onto every <iframe> regardless of stored markup.
  */
 export function sanitizeHtml(dirty: string): string {
-  ensureIframeSandboxHook();
-  return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS,
-    ALLOWED_ATTR,
-    ALLOW_DATA_ATTR: true,
+  return sanitizeHtmlLib(dirty, {
+    allowedTags: ALLOWED_TAGS,
+    allowedAttributes: {
+      "*": COMMON_ATTRS,
+      a: ["href", "target", "rel", ...COMMON_ATTRS],
+      img: ["src", "alt", "width", "height", "loading", ...COMMON_ATTRS],
+      iframe: [
+        "src", "width", "height", "loading",
+        "sandbox", "allow", "allowfullscreen", "referrerpolicy",
+        ...COMMON_ATTRS,
+      ],
+      ol: ["start", "type", ...COMMON_ATTRS],
+      ul: ["type", ...COMMON_ATTRS],
+    },
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    allowedSchemesByTag: {
+      img: ["http", "https", "data"],
+    },
+    allowedSchemesAppliedToAttributes: ["href", "src"],
+    allowProtocolRelative: false,
+    transformTags: {
+      iframe: (tagName, attribs) => ({
+        tagName,
+        attribs: {
+          ...attribs,
+          sandbox: attribs.sandbox || IFRAME_SANDBOX,
+          loading: attribs.loading || "lazy",
+          referrerpolicy: attribs.referrerpolicy || "strict-origin-when-cross-origin",
+        },
+      }),
+    },
   });
 }
