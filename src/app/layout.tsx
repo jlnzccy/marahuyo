@@ -6,7 +6,7 @@ import { ReaderStateHydrator } from "@/components/reader-state-hydrator";
 import { CommandPalette } from "@/components/command-palette";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://marahuyoph.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://marahuyo.art"),
   title: {
     default: "marahuyo",
     template: "%s — marahuyo"

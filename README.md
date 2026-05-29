@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://marahuyoph.vercel.app">
+  <a href="https://marahuyo.art">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="public/logo.svg" />
       <source media="(prefers-color-scheme: light)" srcset="public/logo.svg" />
@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://marahuyoph.vercel.app"><strong>marahuyoph.vercel.app</strong></a>
+  <a href="https://marahuyo.art"><strong>marahuyo.art</strong></a>
 </p>
 
 <p align="center">
