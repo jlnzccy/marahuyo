@@ -5,24 +5,35 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ReaderContainer } from "@/components/reader-container";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { FeaturedCard } from "@/components/featured-card";
+import { FeaturedCarousel } from "@/components/featured-carousel";
 import { WorkRow, workHref } from "@/components/work-row";
 import { ContinueReading } from "@/components/continue-reading";
 import { FadeUp, Stagger, StaggerItem } from "@/components/motion";
-import { getFeaturedWork, getRecentDispatches, getRandomEpigraph } from "@/lib/works";
+import { getFeaturedWorks, getLatestWork, getRecentDispatches, getRandomEpigraph } from "@/lib/works";
 import { getSiteSettings } from "@/lib/settings";
 
 export default async function HomePage() {
-  const [settings, featured, recentRaw, epigraph] = await Promise.all([
+  const [settings, featuredWorks, latest, recentRaw, epigraph] = await Promise.all([
     getSiteSettings(),
-    getFeaturedWork(),
-    getRecentDispatches(5),
+    getFeaturedWorks(),
+    getLatestWork(),
+    getRecentDispatches(6),
     getRandomEpigraph()
   ]);
 
   const { author } = settings;
-  const featuredHref = featured ? workHref(featured) : "/works";
-  const recent = recentRaw.filter((w) => w.id !== featured?.id).slice(0, 4);
+  const hasFeatured = featuredWorks.length > 0;
+  const spotlight = hasFeatured ? featuredWorks : latest ? [latest] : [];
+  const spotlightHeading = !hasFeatured
+    ? "Latest Work"
+    : featuredWorks.length > 1
+      ? "Featured Works"
+      : "Featured";
+  const spotlightEyebrow = hasFeatured ? "featured" : "latest";
+  const primary = spotlight[0] ?? null;
+  const primaryHref = primary ? workHref(primary) : "/works";
+  const spotlightIds = new Set(spotlight.map((w) => w.id));
+  const recent = recentRaw.filter((w) => !spotlightIds.has(w.id)).slice(0, 4);
 
   return (
     <>
@@ -60,10 +71,10 @@ export default async function HomePage() {
                 </p>
                 <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
                   <Link
-                    href={featuredHref}
+                    href={primaryHref}
                     className="group inline-flex items-center gap-2 rounded-full border border-ink bg-ink px-5 py-2.5 font-sans text-sm font-medium text-canvas transition-transform hover:scale-[1.02]"
                   >
-                    Start with the latest
+                    {hasFeatured ? "Start reading" : "Start with the latest"}
                     <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-500 group-hover:rotate-45" />
                   </Link>
                   <Link
@@ -79,13 +90,13 @@ export default async function HomePage() {
           </ReaderContainer>
         </section>
 
-        {/* ---------- Featured ---------- */}
-        {featured && (
+        {/* ---------- Featured / Latest ---------- */}
+        {primary && (
           <section className="pb-24">
             <ReaderContainer width="wide">
               <div className="mb-6 flex items-end justify-between">
                 <h2 className="font-italic italic text-2xl text-muted md:text-3xl">
-                  the latest letter
+                  {spotlightHeading}
                 </h2>
                 <Link
                   href="/works"
@@ -94,7 +105,7 @@ export default async function HomePage() {
                   full archive →
                 </Link>
               </div>
-              <FeaturedCard work={featured} href={featuredHref} />
+              <FeaturedCarousel works={spotlight} eyebrow={spotlightEyebrow} />
             </ReaderContainer>
           </section>
         )}

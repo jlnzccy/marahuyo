@@ -220,38 +220,40 @@ export const getRecentDispatches = cache(
   }
 );
 
-export const getFeaturedWork = cache(async (): Promise<AnyWork | null> => {
+/* All explicitly-featured published works, newest published first. Empty when
+   none are pinned — the homepage then falls back to getLatestWork(). Tolerates
+   a missing `featured` column so the homepage still renders during the window
+   between deploy and migration apply. */
+export const getFeaturedWorks = cache(async (): Promise<AnyWork[]> => {
   const sb = getPublicSupabase();
-
-  /* Pinned pick first: explicit `featured = true`, newest among those.
-     Tolerates a missing column so the homepage still renders during the
-     window between deploy and migration apply. */
   try {
-    const { data: pinned, error: pinnedErr } = await sb
+    const { data, error } = await sb
       .from("works")
       .select("*")
       .eq("status", "published")
       .eq("featured", true)
       .is("deleted_at", null)
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(1)
-      .maybeSingle();
-    if (pinnedErr) {
-      const msg = pinnedErr.message ?? "";
-      if (!/column .*featured.* does not exist|undefined column/i.test(msg)) {
-        throw new Error(`getFeaturedWork(pinned): ${msg}`);
+      .order("published_at", { ascending: false, nullsFirst: false });
+    if (error) {
+      const msg = error.message ?? "";
+      if (/column .*featured.* does not exist|undefined column/i.test(msg)) {
+        return [];
       }
-    } else if (pinned) {
-      return mapWork(pinned as WorkRow);
+      throw new Error(`getFeaturedWorks: ${msg}`);
     }
+    return ((data ?? []) as WorkRow[]).map(mapWork);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (!/column .*featured.* does not exist|undefined column/i.test(msg)) {
-      throw err;
+    if (/column .*featured.* does not exist|undefined column/i.test(msg)) {
+      return [];
     }
+    throw err;
   }
+});
 
-  /* Fallback: most recent published work, ignoring featured flag. */
+/* Most recent published work, ignoring the featured flag. */
+export const getLatestWork = cache(async (): Promise<AnyWork | null> => {
+  const sb = getPublicSupabase();
   const { data, error } = await sb
     .from("works")
     .select("*")
@@ -260,7 +262,7 @@ export const getFeaturedWork = cache(async (): Promise<AnyWork | null> => {
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error(`getFeaturedWork: ${error.message}`);
+  if (error) throw new Error(`getLatestWork: ${error.message}`);
   return data ? mapWork(data as WorkRow) : null;
 });
 
