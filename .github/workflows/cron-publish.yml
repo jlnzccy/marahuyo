@@ -1,0 +1,38 @@
+name: cron-publish
+
+# Scheduled-publish sweeper. Pokes /api/cron/publish on the production site
+# every 15 minutes so works with `scheduled_at <= now()` flip to published.
+#
+# Moved off Vercel Cron because the Hobby plan disallows sub-daily schedules.
+# GitHub Actions free tier handles */15 fine (~2880 runs/mo, well under quota).
+#
+# Required repo secret (Settings -> Secrets and variables -> Actions):
+#   CRON_SECRET   same value as Vercel env var of the same name
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: cron-publish
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: POST /api/cron/publish
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repo secret is not set"
+            exit 1
+          fi
+          curl -fsSL -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Length: 0" \
+            -w "\nHTTP %{http_code} in %{time_total}s\n" \
+            https://www.marahuyo.art/api/cron/publish
