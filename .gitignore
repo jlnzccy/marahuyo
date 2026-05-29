@@ -7,6 +7,7 @@ dist/
 .env
 .env.local
 .env*.local
+.env.local.example
 
 npm-debug.log*
 yarn-debug.log*
@@ -24,3 +25,7 @@ next-env.d.ts
 .vercel
 
 supabase/.temp/
+
+# Dev notes — keep local only
+PLAN.md
+TODO.md
