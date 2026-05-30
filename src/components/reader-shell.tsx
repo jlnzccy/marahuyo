@@ -55,6 +55,7 @@ type Props = {
   chapters?: ChapterNav[];
   seriesSlug?: string;
   currentChapterSlug?: string;
+  seriesTitle?: string;
 };
 
 export async function ReaderShell({
@@ -77,6 +78,12 @@ export async function ReaderShell({
   currentChapterSlug
 }: Props) {
   const { author } = await getSiteSettings();
+
+  const isSeriesChapter = kind === "series" && !!seriesSlug && !!currentChapterSlug;
+  // No-cover series chapters start flush at the top, where the floating reader
+  // chrome (back · chapter pill) would otherwise sit on the title. Reserve room.
+  const needsChromeClearance = isSeriesChapter && !coverImage;
+
   return (
     <>
       {bookmark && (
@@ -93,7 +100,10 @@ export async function ReaderShell({
       )}
       <ReadingProgress />
       <SiteHeader scrollAware />
-      <main id="main-content" className="pt-12 pb-24 md:pt-20">
+      <main
+        id="main-content"
+        className={cn("pt-12 pb-24 md:pt-20", needsChromeClearance && "reader-chrome-clearance")}
+      >
         <ReaderContainer>
           {index && (
             <FadeUp delay={0.02} className="reader-index-link">

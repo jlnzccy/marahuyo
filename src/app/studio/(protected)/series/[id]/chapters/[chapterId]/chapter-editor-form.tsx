@@ -10,6 +10,7 @@ import {
   deleteChapter
 } from "@/app/studio/(protected)/_actions/works";
 import { Editor, type EditorPayload } from "@/app/studio/(protected)/_components/editor";
+import { CoverUploader } from "@/app/studio/(protected)/_components/cover-uploader";
 import { ConfirmDialog } from "@/app/studio/(protected)/_components/confirm-dialog";
 import { DatePicker } from "@/app/studio/(protected)/_components/date-picker";
 import {
@@ -32,6 +33,7 @@ export type InitialChapter = {
   status: WorkStatus;
   body: string;
   poetryMode: boolean;
+  coverImage: string;
   wordCount: number;
   readingMinutes: number;
   publishedAt: string | null;
@@ -44,6 +46,7 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
   const [subtitle, setSubtitle] = useState(initial.subtitle);
   const [excerpt, setExcerpt] = useState(initial.excerpt);
   const [poetryMode, setPoetryMode] = useState(initial.poetryMode);
+  const [coverImage, setCoverImage] = useState(initial.coverImage);
   const [customDate, setCustomDate] = useState<string>(
     initial.publishedAt ? initial.publishedAt.slice(0, 10) : ""
   );
@@ -66,6 +69,7 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
     subtitle: initial.subtitle,
     excerpt: initial.excerpt,
     poetryMode: initial.poetryMode,
+    coverImage: initial.coverImage,
     body: initial.body,
     wordCount: initial.wordCount,
     readingMinutes: initial.readingMinutes,
@@ -84,6 +88,7 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
         excerpt: snap.excerpt,
         body: snap.body,
         poetryMode: snap.poetryMode,
+        coverImage: snap.coverImage || null,
         wordCount: snap.wordCount,
         readingMinutes: snap.readingMinutes,
         publishedAt: snap.customDate ? new Date(snap.customDate).toISOString() : null
@@ -109,6 +114,7 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
       subtitle,
       excerpt,
       poetryMode,
+      coverImage,
       body,
       wordCount,
       readingMinutes,
@@ -121,6 +127,7 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
     subtitle,
     excerpt,
     poetryMode,
+    coverImage,
     body,
     wordCount,
     readingMinutes,
@@ -332,6 +339,14 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
                 Poetry mode (preserves all whitespace)
               </span>
             </label>
+          </section>
+
+          <section className="rounded-xl border border-border/60 bg-surface/40 p-4">
+            <CoverUploader
+              workId={initial.id}
+              value={coverImage}
+              onChange={setCoverImage}
+            />
           </section>
 
           <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-4">

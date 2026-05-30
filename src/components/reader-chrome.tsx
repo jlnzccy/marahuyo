@@ -125,17 +125,17 @@ export function ReaderChrome({
             href={backHref}
             aria-label={backLabel ?? "Back"}
             className={cn(
-              "inline-flex h-9 w-9 items-center justify-center text-ink transition-colors hover:bg-surface",
+              "inline-flex h-11 w-11 items-center justify-center text-ink transition-colors hover:bg-surface",
               PILL
             )}
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-6 w-6" />
           </Link>
 
           {current && (
             <span
               className={cn(
-                "inline-flex items-center px-3 py-1.5 font-mono text-[11px] uppercase tracking-meta text-muted",
+                "inline-flex h-11 items-center px-4 font-mono text-[12px] uppercase tracking-meta text-muted",
                 PILL
               )}
             >
@@ -149,18 +149,18 @@ export function ReaderChrome({
             type="button"
             onClick={() => setSettingsOpen(true)}
             aria-label="Reading settings"
-            className="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-full px-2 font-serif text-[15px] leading-none text-muted transition-colors hover:text-ink"
+            className="inline-flex h-11 min-w-[2.75rem] items-center justify-center rounded-full px-3 font-serif text-[17px] leading-none text-muted transition-colors hover:text-ink"
           >
             Aa
           </button>
-          <span aria-hidden="true" className="h-4 w-px bg-border/70" />
+          <span aria-hidden="true" className="h-5 w-px bg-border/70" />
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
             aria-label="Chapters"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:text-ink"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:text-ink"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-6 w-6" />
           </button>
         </div>
       </motion.div>

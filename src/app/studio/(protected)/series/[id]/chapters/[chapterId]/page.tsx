@@ -15,6 +15,7 @@ type ChapterPageRow = Pick<
   | "status"
   | "body"
   | "poetry_mode"
+  | "cover_image"
   | "word_count"
   | "reading_minutes"
   | "published_at"
@@ -51,7 +52,7 @@ export default async function StudioChapterEditorPage({
     supabase
       .from("chapters")
       .select(
-        "id, slug, series_id, number, title, subtitle, excerpt, status, body, poetry_mode, word_count, reading_minutes, published_at, deleted_at"
+        "id, slug, series_id, number, title, subtitle, excerpt, status, body, poetry_mode, cover_image, word_count, reading_minutes, published_at, deleted_at"
       )
       .eq("id", chapterId)
       .eq("series_id", id)
@@ -81,6 +82,7 @@ export default async function StudioChapterEditorPage({
     status: chapter.status,
     body: chapter.body ?? "",
     poetryMode: Boolean(chapter.poetry_mode),
+    coverImage: chapter.cover_image ?? "",
     wordCount: chapter.word_count ?? 0,
     readingMinutes: chapter.reading_minutes ?? 0,
     publishedAt: chapter.published_at ?? null

@@ -13,6 +13,18 @@ export const DEFAULT_PREFERENCE: ThemePreference = "auto";
 /** Concrete fallback used when `matchMedia` is unavailable (SSR, old engines). */
 export const DEFAULT_THEME: Theme = "light";
 
+/**
+ * System-bar colour per theme — mirrors each theme's `--canvas` token (see
+ * globals.css). Drives `<meta name="theme-color">` so the Android / installed-PWA
+ * status bar and navigation bar stay in step with the active theme instead of a
+ * fixed light/dark guess (which left a mismatched strip in app shell).
+ */
+export const THEME_CANVAS: Record<Theme, string> = {
+  light: "#FFFFFF",
+  cream: "#FDFBF7",
+  midnight: "#0E0E10"
+};
+
 export const STORAGE_KEY = "marahuyo:theme";
 
 export const THEME_LABELS: Record<Theme, string> = {

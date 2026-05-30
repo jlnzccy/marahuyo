@@ -32,11 +32,11 @@ export const metadata: Metadata = {
   }
 };
 
+// `theme-color` is intentionally omitted here: the active theme (light / cream /
+// midnight, incl. user override) isn't a `prefers-color-scheme` match, so a
+// static media-based value left the system bars out of step. The pre-paint
+// script + ThemeProvider own a single <meta name="theme-color"> instead.
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FFFFFF" },
-    { media: "(prefers-color-scheme: dark)", color: "#0E0E10" }
-  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover"

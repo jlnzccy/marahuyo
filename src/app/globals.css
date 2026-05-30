@@ -342,7 +342,7 @@
    ========================================================= */
 
 html.app-bottom-nav body {
-  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 768px) {
@@ -358,6 +358,23 @@ html.app-shell main#main-content {
   padding-top: calc(env(safe-area-inset-top) + 1rem);
 }
 
+/* Home is the one route with an AppTopBar — it already clears the status bar
+   and supplies the wordmark, so its main drops the generic top padding and the
+   hero tightens up under the wordmark (was a big gap from the doubled inset). */
+html.app-shell main#main-content.app-home-main {
+  padding-top: 0;
+}
+html.app-shell .home-hero {
+  padding-top: 0.75rem;
+  padding-bottom: 3rem;
+}
+
+/* No-cover series chapters start flush at the top; reserve room for the
+   floating reader chrome (back · chapter pill) so it doesn't cover the title. */
+html.app-shell main#main-content.reader-chrome-clearance {
+  padding-top: calc(env(safe-area-inset-top) + 4rem);
+}
+
 /* The text "← index" link is replaced by a back chevron on the cover. */
 html.app-shell .reader-index-link {
   display: none;
@@ -369,11 +386,6 @@ html.app-shell .reader-index-link {
 }
 html.app-shell .reader-cover-back {
   display: inline-flex;
-}
-
-/* Series chapters get prev/next from the reader chrome, so drop the foot cards. */
-html.app-shell [data-reader-foot="series"] {
-  display: none;
 }
 
 /* Cover heroes bleed to the very top in the app (cancels the main top padding)

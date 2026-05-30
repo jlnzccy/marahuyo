@@ -114,20 +114,20 @@ export function BottomNav() {
                 href={tab.href}
                 aria-label={tab.label}
                 aria-current={isActive ? "page" : undefined}
-                className="relative flex flex-1 items-center justify-center py-3"
+                className="relative flex flex-1 items-center justify-center py-3.5"
               >
                 {isActive && (
                   <motion.span
                     layoutId="bottom-nav-active"
                     aria-hidden="true"
-                    className="absolute top-0 h-[2px] w-7 rounded-full bg-accent"
+                    className="absolute top-0 h-[2px] w-8 rounded-full bg-accent"
                     transition={
                       reduceMotion ? { duration: 0 } : { duration: 0.4, ease: EASE }
                     }
                   />
                 )}
                 <Icon
-                  size={23}
+                  size={25}
                   strokeWidth={isActive ? 2 : 1.6}
                   className={cn(
                     "transition-colors",
@@ -144,10 +144,10 @@ export function BottomNav() {
             aria-haspopup="dialog"
             aria-expanded={moreOpen}
             aria-label="More"
-            className="relative flex flex-1 items-center justify-center py-3"
+            className="relative flex flex-1 items-center justify-center py-3.5"
           >
             <Menu
-              size={23}
+              size={25}
               strokeWidth={moreOpen ? 2 : 1.6}
               className={cn(
                 "transition-colors",

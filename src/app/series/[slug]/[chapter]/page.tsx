@@ -74,6 +74,7 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
       }}
       likeKey={`series/${series.slug}/${c.slug}`}
       seriesSlug={series.slug}
+      seriesTitle={series.title}
       currentChapterSlug={c.slug}
       chapters={siblings.map((s) => ({
         slug: s.slug,

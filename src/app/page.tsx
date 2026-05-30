@@ -7,7 +7,6 @@ import { ReaderContainer } from "@/components/reader-container";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 import { WorkRow, workHref } from "@/components/work-row";
-import { ContinueReading } from "@/components/continue-reading";
 import { FadeUp, Stagger, StaggerItem } from "@/components/motion";
 import { getFeaturedWorks, getLatestWork, getRecentDispatches, getRandomEpigraph } from "@/lib/works";
 import { getSiteSettings } from "@/lib/settings";
@@ -38,9 +37,9 @@ export default async function HomePage() {
   return (
     <>
       <SiteHeader transparentOnTop />
-      <main id="main-content">
+      <main id="main-content" className="app-home-main">
         {/* ---------- Hero: Author intro ---------- */}
-        <section className="relative pt-20 pb-24 md:pt-28 md:pb-32">
+        <section className="home-hero relative pt-20 pb-24 md:pt-28 md:pb-32">
           <ReaderContainer width="wide">
             <div className="grid items-center gap-10 md:grid-cols-[1fr_1.1fr] md:gap-16">
               <FadeUp delay={0.05}>
@@ -109,9 +108,6 @@ export default async function HomePage() {
             </ReaderContainer>
           </section>
         )}
-
-        {/* ---------- Continue reading (client, localStorage-driven) ---------- */}
-        <ContinueReading />
 
         {/* ---------- Recent letters ---------- */}
         {recent.length > 0 && (

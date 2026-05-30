@@ -8,6 +8,7 @@ import {
   isTheme,
   isThemePreference,
   resolveTheme,
+  THEME_CANVAS,
   THEMES,
   type Theme,
   type ThemePreference
@@ -81,6 +82,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mql.removeEventListener("change", apply);
   }, [preference]);
 
+  // Keep the Android / installed-PWA system bars (status + navigation) in step
+  // with the active theme by syncing the single <meta name="theme-color"> to its
+  // canvas colour. The pre-paint script sets it first; this tracks live changes.
+  useEffect(() => {
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "theme-color";
+      document.head.appendChild(meta);
+    }
+    meta.content = THEME_CANVAS[theme];
+  }, [theme]);
+
   const setPreference = useCallback((next: ThemePreference) => {
     setPreferenceState(next);
     const systemDark =
@@ -146,6 +160,15 @@ export const themeInitScript = `
       theme = pref;
     }
     document.documentElement.setAttribute('data-theme', theme);
+    var canvas = ${JSON.stringify(THEME_CANVAS)};
+    var color = canvas[theme] || ${JSON.stringify(THEME_CANVAS[DEFAULT_THEME])};
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', color);
     var size = localStorage.getItem(${JSON.stringify(READING_SIZE_STORAGE_KEY)});
     if (size === 'xs' || size === 'sm' || size === 'md' || size === 'lg') {
       document.documentElement.setAttribute('data-reading-size', size);
