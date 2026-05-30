@@ -11,6 +11,8 @@ import { Menu, X } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
 import { NavLink } from "@/components/nav-link";
 import { cn } from "@/lib/cn";
+import { useAppShell } from "@/lib/use-app-context";
+import { AppTopBar } from "@/components/app-top-bar";
 
 type Props = {
   /** On reading canvas: header hides on scroll-down, returns on scroll-up. */
@@ -35,6 +37,7 @@ export function SiteHeader({
   const [hidden, setHidden] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const isApp = useAppShell();
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
@@ -67,6 +70,10 @@ export function SiteHeader({
     return () => window.removeEventListener("keydown", onKey);
   }, [menuOpen, closeMenu]);
 
+  // In the app shell the top chrome is the minimal AppTopBar (and the reader
+  // supplies its own), so swap out the full website header entirely.
+  if (isApp) return <AppTopBar />;
+
   return (
     <>
       <motion.header
@@ -75,6 +82,7 @@ export function SiteHeader({
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         className={cn(
           "sticky top-0 z-40 w-full transition-[background-color,border-color,backdrop-filter] duration-500",
+          isApp && "pt-[env(safe-area-inset-top)]",
           scrolled || !transparentOnTop
             ? "border-b border-border/60 bg-canvas/85 backdrop-blur-xl"
             : "border-b border-transparent bg-transparent"
@@ -96,6 +104,8 @@ export function SiteHeader({
           </nav>
 
           {/* ── Mobile hamburger button ───────────────────── */}
+          {/* Hidden in the app shell — the bottom nav handles navigation. */}
+          {!isApp && (
           <button
             type="button"
             aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -130,12 +140,13 @@ export function SiteHeader({
               )}
             </AnimatePresence>
           </button>
+          )}
         </div>
       </motion.header>
 
       {/* ── Mobile full-screen menu overlay ────────────────── */}
       <AnimatePresence>
-        {menuOpen && (
+        {menuOpen && !isApp && (
           <motion.div
             key="mobile-menu"
             initial={{ opacity: 0, y: -12 }}

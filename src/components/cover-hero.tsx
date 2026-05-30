@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { KindChip } from "@/components/kind-chip";
+import { CoverBackButton } from "@/components/cover-back-button";
 import { FadeUp } from "@/components/motion";
+import { cn } from "@/lib/cn";
 import type { WorkKind } from "@/types/content";
 
 type Props = {
@@ -12,14 +14,17 @@ type Props = {
   coverImage?: string;
   /** Set on the first hero of the page so the LCP image isn't lazy-loaded. */
   priority?: boolean;
+  /** App-shell back affordance (browser-back, with this as fallback). Rendered
+   *  as a chevron on the cover; CSS-gated to the app. */
+  backHref?: string;
+  /** Series landing: a standard 2:3 portrait cover crop instead of the wide hero. */
+  full?: boolean;
 };
 
 /**
- * Entry "moment" for a piece. With a cover it renders a cinematic hero —
- * the image bleeds past the reader column, a dark scrim anchors the bottom,
- * and the title sits over it in light type (legible on any cover, any theme).
- * Without a cover it falls back to a large-type title treatment so cover-less
- * works still open deliberately instead of with an empty frame.
+ * Entry "moment" for a piece. With a cover it renders a cinematic hero; the
+ * `full` variant (series landing) shows a standard 2:3 portrait cover. Without
+ * a cover it falls back to a large-type title treatment.
  */
 export function CoverHero({
   kind,
@@ -28,12 +33,20 @@ export function CoverHero({
   meta,
   subtitle,
   coverImage,
-  priority
+  priority,
+  backHref,
+  full
 }: Props) {
   if (coverImage) {
     return (
       <FadeUp delay={0.05}>
-        <figure className="relative -mx-5 aspect-[4/5] overflow-hidden bg-surface sm:aspect-[16/10] md:-mx-12 md:rounded-2xl md:border md:border-border/60">
+        <figure
+          className={cn(
+            "cover-bleed-top relative -mx-5 overflow-hidden bg-surface md:-mx-12 md:rounded-2xl md:border md:border-border/60",
+            full ? "aspect-[2/3]" : "aspect-[4/5] sm:aspect-[16/10]"
+          )}
+        >
+          {backHref && <CoverBackButton fallbackHref={backHref} onImage />}
           <Image
             src={coverImage}
             alt={`Cover for ${title}`}
@@ -76,6 +89,12 @@ export function CoverHero({
 
   return (
     <>
+      {backHref && (
+        <FadeUp delay={0.02}>
+          <CoverBackButton fallbackHref={backHref} onImage={false} />
+        </FadeUp>
+      )}
+
       <FadeUp delay={0.05}>
         <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <KindChip kind={kind} />

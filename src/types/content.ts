@@ -43,6 +43,9 @@ export interface Chapter {
   title: string;
   subtitle?: string;
   excerpt: string;
+  /** Per-chapter cover. When unset the chapter opens with no cover (it does
+   *  NOT fall back to the series cover). */
+  coverImage?: string;
   status: WorkStatus;
   publishedAt?: string;
   wordCount: number;

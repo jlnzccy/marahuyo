@@ -13,12 +13,14 @@ import { BookmarkTracker } from "@/components/bookmark-tracker";
 import { ResumePill } from "@/components/resume-pill";
 import { Marginalia } from "@/components/marginalia";
 import { TableOfContents } from "@/components/table-of-contents";
+import { RelatedReading } from "@/components/related-reading";
+import { ReaderChrome, type ChapterNav } from "@/components/reader-chrome";
 import { FadeUp } from "@/components/motion";
 import { cn } from "@/lib/cn";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { parseHeadings } from "@/lib/toc";
 import { getSiteSettings } from "@/lib/settings";
-import type { WorkKind } from "@/types/content";
+import type { AnyWork, WorkKind } from "@/types/content";
 
 type FootLink = { href: string; label: string; hint?: string };
 
@@ -47,6 +49,12 @@ type Props = {
   likeKey?: string;
   /** When set, records a visit in localStorage so the homepage rail surfaces it. */
   bookmark?: Bookmark;
+  /** "Keep reading" suggestions rendered at the foot of the piece. */
+  related?: AnyWork[];
+  /** Series chapter list — powers the in-reader chapter selector (app chrome). */
+  chapters?: ChapterNav[];
+  seriesSlug?: string;
+  currentChapterSlug?: string;
 };
 
 export async function ReaderShell({
@@ -62,7 +70,11 @@ export async function ReaderShell({
   next,
   index,
   likeKey,
-  bookmark
+  bookmark,
+  related,
+  chapters,
+  seriesSlug,
+  currentChapterSlug
 }: Props) {
   const { author } = await getSiteSettings();
   return (
@@ -84,7 +96,7 @@ export async function ReaderShell({
       <main id="main-content" className="pt-12 pb-24 md:pt-20">
         <ReaderContainer>
           {index && (
-            <FadeUp delay={0.02}>
+            <FadeUp delay={0.02} className="reader-index-link">
               <Link
                 href={index.href}
                 className="group mb-6 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-meta text-muted transition-colors hover:text-ink"
@@ -102,6 +114,7 @@ export async function ReaderShell({
             meta={meta}
             subtitle={subtitle}
             coverImage={coverImage}
+            backHref={kind === "series" ? undefined : index?.href}
             priority
           />
 
@@ -125,13 +138,38 @@ export async function ReaderShell({
           })()}
 
           {(prev || next || index) && (
-            <FadeUp delay={0.1}>
-              <ReaderFoot prev={prev ?? null} next={next ?? null} index={index ?? null} />
+            <div data-reader-foot={kind === "series" ? "series" : "work"}>
+              <FadeUp delay={0.1}>
+                <ReaderFoot prev={prev ?? null} next={next ?? null} index={index ?? null} />
+              </FadeUp>
+            </div>
+          )}
+
+          {related && related.length > 0 && (
+            <FadeUp delay={0.12}>
+              <RelatedReading works={related} />
             </FadeUp>
           )}
         </ReaderContainer>
       </main>
-      <ReaderActions title={title} subtitle={subtitle} likeKey={likeKey} />
+      <ReaderActions
+        title={title}
+        subtitle={subtitle}
+        likeKey={likeKey}
+        seriesMode={kind === "series"}
+      />
+      <ReaderChrome
+        title={title}
+        subtitle={subtitle}
+        likeKey={likeKey}
+        backHref={index?.href ?? "/works"}
+        backLabel={index?.label}
+        prev={prev}
+        next={next}
+        seriesSlug={seriesSlug}
+        currentChapterSlug={currentChapterSlug}
+        chapters={chapters}
+      />
       <QuoteShare title={title} author={author.name || undefined} />
       <SiteFooter />
       <ThemeSwitcher />

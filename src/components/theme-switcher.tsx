@@ -17,6 +17,7 @@ import {
   type ReadingSize
 } from "@/lib/reading-size";
 import { cn } from "@/lib/cn";
+import { useAppShell } from "@/lib/use-app-context";
 
 const ICONS: Record<ThemePreference, React.ComponentType<{ className?: string }>> = {
   auto: Monitor,
@@ -39,6 +40,7 @@ type Props = {
 
 export function ThemeSwitcher({ floating = true, className }: Props) {
   const { theme, preference, setPreference, readingSize, setReadingSize } = useTheme();
+  const isApp = useAppShell();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -93,6 +95,10 @@ export function ThemeSwitcher({ floating = true, className }: Props) {
      surfaces when they're in `auto`). Falls back to the resolved theme. */
   const ActiveIcon =
     preference === "auto" ? ICONS.auto : RESOLVED_ICONS[theme];
+
+  // The floating reading-themes button is replaced by the More sheet inside the
+  // app shell; suppress it there so it doesn't collide with the bottom nav.
+  if (floating && isApp) return null;
 
 
 

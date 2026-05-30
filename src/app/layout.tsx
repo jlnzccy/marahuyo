@@ -4,6 +4,8 @@ import { fontVariables } from "@/lib/fonts";
 import { ThemeProvider, themeInitScript } from "@/components/theme-provider";
 import { ReaderStateHydrator } from "@/components/reader-state-hydrator";
 import { CommandPalette } from "@/components/command-palette";
+import { BottomNav } from "@/components/bottom-nav";
+import { AppShellFlag } from "@/components/app-shell-flag";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://marahuyo.art"),
@@ -19,6 +21,12 @@ export const metadata: Metadata = {
     type: "website"
   },
   robots: { index: true, follow: true },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Marahuyo"
+  },
   icons: {
     icon: { url: "/favicon.svg", type: "image/svg+xml" }
   }
@@ -30,7 +38,8 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: dark)", color: "#0E0E10" }
   ],
   width: "device-width",
-  initialScale: 1
+  initialScale: 1,
+  viewportFit: "cover"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -50,6 +59,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           {children}
           <CommandPalette />
+          <AppShellFlag />
+          <BottomNav />
         </ThemeProvider>
       </body>
     </html>

@@ -1,8 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
+import { useAppShell } from "@/lib/use-app-context";
 
 export function SiteFooter() {
+  const isApp = useAppShell();
   const year = new Date().getFullYear();
+  // The app shell replaces the footer with the bottom nav + More sheet.
+  if (isApp) return null;
   return (
     <footer className="mt-32 border-t border-border/50 bg-surface/10 py-16">
       <div className="mx-auto max-w-6xl px-5 md:px-8">

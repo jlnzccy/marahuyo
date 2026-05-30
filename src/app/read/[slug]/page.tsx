@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { ReaderShell } from "@/components/reader-shell";
 import {
   getPublishedStandaloneSlugs,
+  getRelatedWorks,
   getStandaloneBySlug
 } from "@/lib/works";
 
@@ -29,6 +30,8 @@ export default async function ReadPage({ params }: { params: Promise<Params> }) 
   const work = await getStandaloneBySlug(slug);
   if (!work) notFound();
 
+  const related = await getRelatedWorks(work.slug, 3);
+
   const date = work.publishedAt
     ? new Date(work.publishedAt).toLocaleDateString("en-US", {
         month: "long",
@@ -51,6 +54,7 @@ export default async function ReadPage({ params }: { params: Promise<Params> }) 
       next={null}
       index={{ href: "/works", label: "All works", hint: "Return to the archive" }}
       likeKey={`read/${work.slug}`}
+      related={related}
       bookmark={{
         key: `read/${work.slug}`,
         href: `/read/${work.slug}`,

@@ -91,6 +91,10 @@
   /* Reader font-size control (from ThemeSwitcher → "Type" section).
      Default is "md" (19px, set by `text-reading` above). Other sizes override
      just the body + paragraph rhythm so headings stay proportional. */
+  html[data-reading-size="xs"] .reader-prose {
+    font-size: 15px;
+    line-height: 1.72;
+  }
   html[data-reading-size="sm"] .reader-prose {
     font-size: 17px;
     line-height: 1.75;
@@ -328,6 +332,54 @@
   .link-underline:hover::after {
     @apply origin-bottom-left scale-x-100;
   }
+}
+
+/* =========================================================
+   App shell — installed PWA / Capacitor wrapper.
+   Reserve room for the fixed bottom tab bar so footers and
+   trailing content clear it. Safe-area aware; dropped at the
+   md breakpoint where the bar is hidden (`md:hidden`).
+   ========================================================= */
+
+html.app-bottom-nav body {
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  html.app-bottom-nav body {
+    padding-bottom: 0;
+  }
+}
+
+/* In-app adjustments that apply on every route (the reader has no bottom nav,
+   so these can't hinge on the bottom-nav class). The top bar is gone, so pull
+   page content up to just below the status bar. */
+html.app-shell main#main-content {
+  padding-top: calc(env(safe-area-inset-top) + 1rem);
+}
+
+/* The text "← index" link is replaced by a back chevron on the cover. */
+html.app-shell .reader-index-link {
+  display: none;
+}
+
+/* Back chevron overlay on the cover — app only. */
+.reader-cover-back {
+  display: none;
+}
+html.app-shell .reader-cover-back {
+  display: inline-flex;
+}
+
+/* Series chapters get prev/next from the reader chrome, so drop the foot cards. */
+html.app-shell [data-reader-foot="series"] {
+  display: none;
+}
+
+/* Cover heroes bleed to the very top in the app (cancels the main top padding)
+   so there's no slim dark strip above them beneath the status bar. */
+html.app-shell .cover-bleed-top {
+  margin-top: calc(-1 * (env(safe-area-inset-top) + 1rem));
 }
 
 /* =========================================================

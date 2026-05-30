@@ -48,7 +48,7 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
       meta={`${position ? position + " · " : ""}${c.readingMinutes} min · ${c.wordCount.toLocaleString()} words`}
       body={c.body}
       poetryMode={c.poetryMode}
-      coverImage={series.coverImage}
+      coverImage={c.coverImage}
       prev={
         prevCh
           ? {
@@ -73,6 +73,13 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
         hint: series.title
       }}
       likeKey={`series/${series.slug}/${c.slug}`}
+      seriesSlug={series.slug}
+      currentChapterSlug={c.slug}
+      chapters={siblings.map((s) => ({
+        slug: s.slug,
+        number: s.number,
+        title: s.title
+      }))}
       bookmark={{
         key: `series/${series.slug}/${c.slug}`,
         href: `/series/${series.slug}/${c.slug}`,

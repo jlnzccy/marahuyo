@@ -49,6 +49,8 @@ export default async function SeriesPage({ params }: { params: Promise<Params> }
             eyebrow={`${published.length} chapter${published.length === 1 ? "" : "s"} · ${series.seriesStatus}`}
             subtitle={series.subtitle}
             coverImage={series.coverImage}
+            backHref="/works"
+            full
             priority
           />
 

@@ -67,6 +67,7 @@ function mapChapter(row: ChapterRow): Chapter {
     title: row.title,
     subtitle: row.subtitle ?? undefined,
     excerpt: row.excerpt ?? "",
+    coverImage: row.cover_image ?? undefined,
     status: row.status,
     publishedAt: row.published_at ?? undefined,
     wordCount: row.word_count,
@@ -84,12 +85,37 @@ export const getAllPublishedWorks = cache(async (): Promise<AnyWork[]> => {
   const sb = getPublicSupabase();
   const { data, error } = await sb
     .from("works")
-    .select("*")
+    .select("*, chapters(reading_minutes, word_count, status, deleted_at)")
     .eq("status", "published")
     .is("deleted_at", null)
     .order("published_at", { ascending: false, nullsFirst: false });
   if (error) throw new Error(`getAllPublishedWorks: ${error.message}`);
-  return ((data ?? []) as WorkRow[]).map(mapWork);
+
+  type ChapterAgg = {
+    reading_minutes: number;
+    word_count: number;
+    status: string;
+    deleted_at: string | null;
+  };
+  const rows = (data ?? []) as Array<WorkRow & { chapters?: ChapterAgg[] | null }>;
+
+  return rows.map((row) => {
+    const work = mapWork(row);
+    // A series row carries no body, so its own reading_minutes is 0. Roll up the
+    // published chapters instead. Embedded joins don't inherit the parent
+    // deleted_at filter, so filter the chapters client-side. See
+    // [[soft-delete-embedded-joins]].
+    if (work.kind === "series") {
+      const live = (row.chapters ?? []).filter(
+        (c) => c.status === "published" && c.deleted_at === null
+      );
+      work.readingMinutes = live.reduce((sum, c) => sum + (c.reading_minutes ?? 0), 0);
+      if (work.wordCount === 0) {
+        work.wordCount = live.reduce((sum, c) => sum + (c.word_count ?? 0), 0);
+      }
+    }
+    return work;
+  });
 });
 
 export const getStandaloneBySlug = cache(
@@ -217,6 +243,43 @@ export const getRecentDispatches = cache(
       .limit(limit);
     if (error) throw new Error(`getRecentDispatches: ${error.message}`);
     return ((data ?? []) as WorkRow[]).map(mapStandalone);
+  }
+);
+
+/**
+ * "Keep reading" suggestions for the foot of a standalone piece. Ranks the rest
+ * of the published archive by shared tags first, then same kind, then recency,
+ * and returns the top `limit`. Reuses the cached `getAllPublishedWorks()` read,
+ * so it adds no extra round-trip, and always returns something — it degrades to
+ * recent same-kind work when the current piece shares no tags with anything.
+ */
+export const getRelatedWorks = cache(
+  async (slug: string, limit = 3): Promise<AnyWork[]> => {
+    const all = await getAllPublishedWorks();
+    const current = all.find((w) => w.slug === slug);
+    if (!current) return [];
+
+    const currentTags = new Set(
+      (current.tags ?? []).map((t) => t.trim().toLowerCase()).filter(Boolean)
+    );
+
+    const scored = all
+      .filter((w) => w.slug !== slug)
+      .map((w) => ({
+        work: w,
+        shared: (w.tags ?? []).reduce(
+          (n, t) => n + (currentTags.has(t.trim().toLowerCase()) ? 1 : 0),
+          0
+        ),
+        sameKind: w.kind === current.kind ? 1 : 0,
+        ts: w.publishedAt ? new Date(w.publishedAt).getTime() : 0
+      }));
+
+    scored.sort(
+      (a, b) => b.shared - a.shared || b.sameKind - a.sameKind || b.ts - a.ts
+    );
+
+    return scored.slice(0, limit).map((s) => s.work);
   }
 );
 

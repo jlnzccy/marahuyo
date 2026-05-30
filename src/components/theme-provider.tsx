@@ -147,7 +147,7 @@ export const themeInitScript = `
     }
     document.documentElement.setAttribute('data-theme', theme);
     var size = localStorage.getItem(${JSON.stringify(READING_SIZE_STORAGE_KEY)});
-    if (size === 'sm' || size === 'md' || size === 'lg') {
+    if (size === 'xs' || size === 'sm' || size === 'md' || size === 'lg') {
       document.documentElement.setAttribute('data-reading-size', size);
     } else {
       document.documentElement.setAttribute('data-reading-size', '${DEFAULT_READING_SIZE}');

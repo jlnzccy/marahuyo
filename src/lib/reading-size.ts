@@ -1,10 +1,11 @@
-export const READING_SIZES = ["sm", "md", "lg"] as const;
+export const READING_SIZES = ["xs", "sm", "md", "lg"] as const;
 export type ReadingSize = (typeof READING_SIZES)[number];
 
 export const DEFAULT_READING_SIZE: ReadingSize = "md";
 export const READING_SIZE_STORAGE_KEY = "marahuyo:reader-size";
 
 export const READING_SIZE_LABELS: Record<ReadingSize, string> = {
+  xs: "Smaller",
   sm: "Small",
   md: "Default",
   lg: "Large"
