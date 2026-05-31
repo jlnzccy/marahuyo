@@ -351,6 +351,54 @@ html.app-bottom-nav body {
   }
 }
 
+/* ---------------------------------------------------------
+   Web-tell kill. The wrapper is a WebView; these are the
+   default browser behaviours that give it away as a web page.
+   All scoped to the installed shell so the public site keeps
+   normal desktop affordances (text selection, drag, etc.).
+   --------------------------------------------------------- */
+
+/* No grey/blue flash box on tap (inherited, so the root covers all). */
+html.app-shell {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* No webview pull-to-refresh reload or scroll-chaining bounce. */
+html.app-shell,
+html.app-shell body {
+  overscroll-behavior-y: none;
+}
+
+/* Interactive chrome behaves like native controls: no long-press callout,
+   no text selection, no tap delay. Reading prose is exempted below. */
+html.app-shell a,
+html.app-shell button,
+html.app-shell label,
+html.app-shell nav,
+html.app-shell [role="button"],
+html.app-shell [role="radio"] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* The reading canvas stays fully selectable — quote-share depends on it.
+   Higher specificity than the `a` rule above, so in-prose links select too. */
+html.app-shell .reader-prose,
+html.app-shell .reader-prose * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Images don't drag-ghost or pop a save-image menu. */
+html.app-shell img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /* In-app adjustments that apply on every route (the reader has no bottom nav,
    so these can't hinge on the bottom-nav class). The top bar is gone, so pull
    page content up to just below the status bar. */
@@ -392,6 +440,40 @@ html.app-shell .reader-cover-back {
    so there's no slim dark strip above them beneath the status bar. */
 html.app-shell .cover-bleed-top {
   margin-top: calc(-1 * (env(safe-area-inset-top) + 1rem));
+}
+
+/* =========================================================
+   Route transitions (see app/template.tsx).
+   A quiet fade on every navigation; inside the installed app
+   a small directional slide is layered on so nav reads as a
+   native push (forward) / pop (back). The animation resolves
+   to transform:none + opacity:1, so it never leaves a lingering
+   containing block for the page's fixed chrome. Honored by the
+   global prefers-reduced-motion rule below (animations neutered).
+   ========================================================= */
+
+@keyframes route-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes route-push-forward {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes route-push-back {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.route-tx {
+  animation: route-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+html.app-shell .route-tx[data-dir="forward"] {
+  animation: route-push-forward 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+html.app-shell .route-tx[data-dir="back"] {
+  animation: route-push-back 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* =========================================================

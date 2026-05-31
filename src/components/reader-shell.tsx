@@ -15,6 +15,7 @@ import { Marginalia } from "@/components/marginalia";
 import { TableOfContents } from "@/components/table-of-contents";
 import { RelatedReading } from "@/components/related-reading";
 import { ReaderChrome, type ChapterNav } from "@/components/reader-chrome";
+import { PrefetchRoute } from "@/components/prefetch-route";
 import { FadeUp } from "@/components/motion";
 import { cn } from "@/lib/cn";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -181,6 +182,7 @@ export async function ReaderShell({
         chapters={chapters}
       />
       <QuoteShare title={title} author={author.name || undefined} />
+      {next?.href && <PrefetchRoute href={next.href} />}
       <SiteFooter />
       <ThemeSwitcher />
     </>
