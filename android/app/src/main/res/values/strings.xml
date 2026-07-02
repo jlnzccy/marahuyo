@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Marahuyo</string>
+    <string name="title_activity_main">Marahuyo</string>
+    <string name="package_name">com.marahuyo.art</string>
+    <string name="custom_url_scheme">com.marahuyo.art</string>
+</resources>

@@ -6,6 +6,8 @@ import { ReaderStateHydrator } from "@/components/reader-state-hydrator";
 import { CommandPalette } from "@/components/command-palette";
 import { BottomNav } from "@/components/bottom-nav";
 import { AppShellFlag } from "@/components/app-shell-flag";
+import { NativeBridge } from "@/components/native-bridge";
+import { OfflineBanner } from "@/components/offline-banner";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://marahuyo.art"),
@@ -61,6 +63,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CommandPalette />
           <AppShellFlag />
           <BottomNav />
+          <NativeBridge />
+          <OfflineBanner />
         </ThemeProvider>
       </body>
     </html>

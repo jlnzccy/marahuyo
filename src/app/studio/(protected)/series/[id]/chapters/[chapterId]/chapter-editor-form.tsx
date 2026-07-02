@@ -12,7 +12,7 @@ import {
 import { Editor, type EditorPayload } from "@/app/studio/(protected)/_components/editor";
 import { CoverUploader } from "@/app/studio/(protected)/_components/cover-uploader";
 import { ConfirmDialog } from "@/app/studio/(protected)/_components/confirm-dialog";
-import { DatePicker } from "@/app/studio/(protected)/_components/date-picker";
+import { DatePicker, toIso } from "@/app/studio/(protected)/_components/date-picker";
 import {
   SaveIndicator,
   type SaveStatus
@@ -54,6 +54,7 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
   const [body, setBody] = useState(initial.body);
   const [wordCount, setWordCount] = useState(initial.wordCount);
   const [readingMinutes, setReadingMinutes] = useState(initial.readingMinutes);
+  const [slug, setSlug] = useState(initial.slug);
 
   const [status, setStatus] = useState<WorkStatus>(initial.status);
   const [saveState, setSaveState] = useState<SaveStatus>("idle");
@@ -81,7 +82,7 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
     setSaveState("saving");
     setSaveError(undefined);
     try {
-      await updateChapter({
+      const res = await updateChapter({
         id: initial.id,
         title: snap.title,
         subtitle: snap.subtitle || null,
@@ -93,6 +94,7 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
         readingMinutes: snap.readingMinutes,
         publishedAt: snap.customDate ? new Date(snap.customDate).toISOString() : null
       });
+      if (res.slug) setSlug(res.slug);
       setLastSavedAt(Date.now());
       setSaveState("saved");
     } catch (err) {
@@ -155,10 +157,22 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
   const togglePublish = useCallback(() => {
     startAction(async () => {
       try {
+        let needsSave = !!saveTimer.current;
+        if (!isPublished && !customDate) {
+          const today = toIso(new Date());
+          setCustomDate(today);
+          latestSnapshotRef.current.customDate = today;
+          needsSave = true;
+        }
+
         if (saveTimer.current) {
           clearTimeout(saveTimer.current);
+        }
+
+        if (needsSave) {
           await flushSave();
         }
+
         if (isPublished) {
           await unpublishChapter(initial.id);
           setStatus("draft");
@@ -171,7 +185,7 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
         setSaveState("error");
       }
     });
-  }, [flushSave, initial.id, isPublished]);
+  }, [flushSave, initial.id, isPublished, customDate]);
 
   const confirmDelete = useCallback(() => {
     startAction(async () => {
@@ -180,8 +194,8 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
   }, [initial.id]);
 
   const publicHref = useMemo(
-    () => `/series/${initial.seriesSlug}/${initial.slug}`,
-    [initial.seriesSlug, initial.slug]
+    () => `/series/${initial.seriesSlug}/${slug}`,
+    [initial.seriesSlug, slug]
   );
 
   return (
@@ -353,7 +367,7 @@ export function ChapterEditorForm({ initial, inTrash = false }: { initial: Initi
             <span className="meta">publication date</span>
             <DatePicker
               value={customDate}
-              max={new Date().toISOString().slice(0, 10)}
+              max={toIso(new Date())}
               onChange={(val) => {
                 setDateError(undefined);
                 setCustomDate(val);

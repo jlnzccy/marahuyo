@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Share2, Check, Link2 } from "lucide-react";
+import { nativeShare, hapticLight } from "@/lib/native";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -36,6 +37,12 @@ export function ShareButton({ title, text }: Props) {
 
   const handle = async () => {
     const url = window.location.href;
+    // Native shell: use the OS share sheet via Capacitor first.
+    void hapticLight();
+    if (await nativeShare({ title, text, url })) {
+      flash("shared");
+      return;
+    }
     if (canNativeShare) {
       try {
         await navigator.share({ title, text, url });

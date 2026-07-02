@@ -9,6 +9,7 @@ import { ShareButton } from "@/components/share-button";
 import { ReadingSettings } from "@/components/reading-settings";
 import { useAppShell } from "@/lib/use-app-context";
 import { readBookmarks } from "@/lib/bookmarks";
+import { hapticLight } from "@/lib/native";
 import { cn } from "@/lib/cn";
 
 export type ChapterNav = {
@@ -147,7 +148,10 @@ export function ReaderChrome({
         <div className={cn("flex items-center", pe, PILL)}>
           <button
             type="button"
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => {
+              void hapticLight();
+              setSettingsOpen(true);
+            }}
             aria-label="Reading settings"
             className="inline-flex h-11 min-w-[2.75rem] items-center justify-center rounded-full px-3 font-serif text-[17px] leading-none text-muted transition-colors hover:text-ink"
           >
@@ -156,7 +160,10 @@ export function ReaderChrome({
           <span aria-hidden="true" className="h-5 w-px bg-border/70" />
           <button
             type="button"
-            onClick={() => setDrawerOpen(true)}
+            onClick={() => {
+              void hapticLight();
+              setDrawerOpen(true);
+            }}
             aria-label="Chapters"
             className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:text-ink"
           >

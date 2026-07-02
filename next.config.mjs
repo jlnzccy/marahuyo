@@ -11,7 +11,8 @@ const nextConfig = {
     optimizePackageImports: ["lucide-react", "framer-motion"],
     serverActions: {
       bodySizeLimit: "6mb"
-    }
+    },
+    allowedDevOrigins: ["192.168.100.26:3000", "localhost:3000", "capacitor://localhost", "http://localhost"]
   }
 };
 

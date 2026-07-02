@@ -147,6 +147,59 @@ export function useTheme() {
  */
 export const themeInitScript = `
 (function(){
+  if (typeof window !== 'undefined' && window.console) {
+    var formatArg = function(arg) {
+      if (arg instanceof Error) {
+        return "ERR: " + arg.name + ": " + arg.message + "\\nStack: " + arg.stack;
+      } else if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg);
+        } catch(e) {
+          try {
+            var keys = Object.keys(arg);
+            var str = "{";
+            keys.forEach(function(k) {
+              var val = arg[k];
+              if (val instanceof Error) {
+                str += k + ": [Error: " + val.message + "], ";
+              } else {
+                str += k + ": " + String(val) + ", ";
+              }
+            });
+            str += "}";
+            return str;
+          } catch(e2) {
+            return "[Object]";
+          }
+        }
+      }
+      return arg;
+    };
+    var hookConsole = function(method) {
+      var original = window.console[method];
+      if (original) {
+        window.console[method] = function() {
+          var args = Array.prototype.slice.call(arguments);
+          var formatted = args.map(formatArg);
+          original.apply(window.console, formatted);
+        };
+      }
+    };
+    hookConsole('log');
+    hookConsole('warn');
+    hookConsole('error');
+    hookConsole('info');
+    hookConsole('debug');
+
+    window.addEventListener('error', function(event) {
+      var error = event.error || event;
+      console.error("GLOBAL ERROR: " + (error ? (error.message || error) : event.message) + " | File: " + event.filename + ":" + event.lineno + " | Stack: " + (error && error.stack));
+    });
+    window.addEventListener('unhandledrejection', function(event) {
+      var reason = event.reason;
+      console.error("UNHANDLED REJECTION: " + (reason ? (reason.message || reason) : reason) + " | Stack: " + (reason && reason.stack));
+    });
+  }
   try {
     var stored = localStorage.getItem(${JSON.stringify(STORAGE_KEY)});
     var pref = (stored === 'auto' || stored === 'cream' || stored === 'light' || stored === 'midnight')

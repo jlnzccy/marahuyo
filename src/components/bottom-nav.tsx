@@ -12,6 +12,7 @@ import {
 import { Home, Library, Search, Bookmark, Menu } from "lucide-react";
 import { useAppShell } from "@/lib/use-app-context";
 import { MoreSheet } from "@/components/more-sheet";
+import { hapticSelection, hapticLight } from "@/lib/native";
 import { cn } from "@/lib/cn";
 
 type Tab = {
@@ -114,6 +115,9 @@ export function BottomNav() {
                 href={tab.href}
                 aria-label={tab.label}
                 aria-current={isActive ? "page" : undefined}
+                onClick={() => {
+                  if (!isActive) void hapticSelection();
+                }}
                 className="relative flex flex-1 items-center justify-center py-3.5"
               >
                 {isActive && (
@@ -140,7 +144,10 @@ export function BottomNav() {
 
           <button
             type="button"
-            onClick={() => setMoreOpen(true)}
+            onClick={() => {
+              void hapticLight();
+              setMoreOpen(true);
+            }}
             aria-haspopup="dialog"
             aria-expanded={moreOpen}
             aria-label="More"

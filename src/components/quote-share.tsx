@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Quote, Check } from "lucide-react";
+import { hapticLight } from "@/lib/native";
 
 type Props = {
   title: string;
@@ -100,6 +101,7 @@ export function QuoteShare({ title, author }: Props) {
   };
 
   const share = async () => {
+    void hapticLight();
     const clipped =
       anchor.text.length > MAX_QUOTE
         ? anchor.text.slice(0, MAX_QUOTE).trimEnd() + "…"

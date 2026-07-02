@@ -17,7 +17,7 @@ import type { ReaderStateInsert, ReaderStateRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
-const DEVICE_RE = /^[0-9a-fA-F-]{16,64}$/;
+const DEVICE_RE = /^(dev-[a-zA-Z0-9]{16,64}|[0-9a-fA-F-]{16,64})$/;
 
 const entrySchema = z.object({
   key: z.string().min(1).max(200),

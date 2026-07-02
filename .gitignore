@@ -31,4 +31,10 @@ PLAN.md
 TODO.md
 DESIGN.md
 PRODUCT.md
+changes.md
+
+# On-device / debug dumps (adb logcat, devtools scratch) — local only
+log_*.txt
+temp_*.js
+temp_*.html
 

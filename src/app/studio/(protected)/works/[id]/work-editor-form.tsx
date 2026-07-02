@@ -12,7 +12,7 @@ import {
 import { Editor, type EditorPayload } from "@/app/studio/(protected)/_components/editor";
 import { CoverUploader } from "@/app/studio/(protected)/_components/cover-uploader";
 import { ConfirmDialog } from "@/app/studio/(protected)/_components/confirm-dialog";
-import { DatePicker } from "@/app/studio/(protected)/_components/date-picker";
+import { DatePicker, toIso } from "@/app/studio/(protected)/_components/date-picker";
 import { TagInput } from "@/app/studio/(protected)/_components/tag-input";
 import {
   SaveIndicator,
@@ -51,6 +51,7 @@ type Props = {
 export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
   // ----- Local form state -----
   const [title, setTitle] = useState(initial.title);
+  const [slug, setSlug] = useState(initial.slug);
   const [subtitle, setSubtitle] = useState(initial.subtitle);
   const [excerpt, setExcerpt] = useState(initial.excerpt);
   const [tagsText, setTagsText] = useState(initial.tags.join(", "));
@@ -64,13 +65,6 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
     initial.publishedAt ? initial.publishedAt.slice(0, 10) : ""
   );
   const [dateError, setDateError] = useState<string | undefined>(undefined);
-  /* `<input type="datetime-local">` wants `YYYY-MM-DDTHH:mm`, no Z. */
-  const [scheduledLocal, setScheduledLocal] = useState<string>(() => {
-    if (!initial.scheduledAt) return "";
-    const d = new Date(initial.scheduledAt);
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  });
 
   // ----- Status + control -----
   const [status, setStatus] = useState<WorkStatus>(initial.status);
@@ -94,8 +88,7 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
     body: initial.body,
     wordCount: initial.wordCount,
     readingMinutes: initial.readingMinutes,
-    customDate: initial.publishedAt ? initial.publishedAt.slice(0, 10) : "",
-    scheduledLocal: scheduledLocal
+    customDate: initial.publishedAt ? initial.publishedAt.slice(0, 10) : ""
   });
 
   const flushSave = useCallback(async () => {
@@ -103,7 +96,7 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
     setSaveState("saving");
     setSaveError(undefined);
     try {
-      await updateWork({
+      const res = await updateWork({
         id: initial.id,
         title: snap.title,
         subtitle: snap.subtitle || null,
@@ -116,10 +109,9 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
         wordCount: snap.wordCount,
         readingMinutes: snap.readingMinutes,
         publishedAt: snap.customDate ? new Date(snap.customDate).toISOString() : null,
-        scheduledAt: snap.scheduledLocal
-          ? new Date(snap.scheduledLocal).toISOString()
-          : null
+        scheduledAt: null
       });
+      if (res.slug) setSlug(res.slug);
       setLastSavedAt(Date.now());
       setSaveState("saved");
     } catch (err) {
@@ -152,8 +144,7 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
       body,
       wordCount,
       readingMinutes,
-      customDate,
-      scheduledLocal
+      customDate
     };
     // Skip the very first render — there are no real changes yet.
     if (didMount.current) scheduleSave();
@@ -170,7 +161,6 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
     wordCount,
     readingMinutes,
     customDate,
-    scheduledLocal,
     scheduleSave
   ]);
 
@@ -197,11 +187,22 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
   const togglePublish = useCallback(() => {
     startAction(async () => {
       try {
-        // Flush any pending edits first so the published version is current.
+        let needsSave = !!saveTimer.current;
+        if (!isPublished && !customDate) {
+          const today = toIso(new Date());
+          setCustomDate(today);
+          latestSnapshotRef.current.customDate = today;
+          needsSave = true;
+        }
+
         if (saveTimer.current) {
           clearTimeout(saveTimer.current);
+        }
+
+        if (needsSave) {
           await flushSave();
         }
+
         if (isPublished) {
           await unpublishWork(initial.id);
           setStatus("draft");
@@ -214,7 +215,7 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
         setSaveState("error");
       }
     });
-  }, [flushSave, initial.id, isPublished]);
+  }, [flushSave, initial.id, isPublished, customDate]);
 
   const handleDelete = useCallback(() => {
     setConfirmDeleteOpen(true);
@@ -226,7 +227,7 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
     });
   }, [initial.id]);
 
-  const publicHref = useMemo(() => `/read/${initial.slug}`, [initial.slug]);
+  const publicHref = useMemo(() => `/read/${slug}`, [slug]);
 
   return (
     <div className="space-y-6">
@@ -434,7 +435,7 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
             <span className="meta">publication date</span>
             <DatePicker
               value={customDate}
-              max={new Date().toISOString().slice(0, 10)}
+              max={toIso(new Date())}
               onChange={(val) => {
                 setDateError(undefined);
                 setCustomDate(val);
@@ -446,31 +447,6 @@ export function WorkEditorForm({ initial, knownTags, inTrash = false }: Props) {
             <p className="font-sans text-xs text-whisper">
               leave empty to auto-set when published
             </p>
-          </section>
-
-          <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-4">
-            <label className="block">
-              <span className="meta">schedule publish</span>
-              <input
-                type="datetime-local"
-                value={scheduledLocal}
-                onChange={(e) => setScheduledLocal(e.target.value)}
-                className="mt-1.5 w-full rounded-md border border-border/80 bg-canvas px-3 py-1.5 font-mono text-xs text-ink placeholder:text-whisper focus:border-accent focus:outline-none"
-              />
-            </label>
-            <p className="font-sans text-xs text-whisper">
-              draft flips to published when the cron fires after this time (every
-              15 minutes). leave empty to publish manually.
-            </p>
-            {scheduledLocal && (
-              <button
-                type="button"
-                onClick={() => setScheduledLocal("")}
-                className="font-sans text-xs text-muted underline underline-offset-2 hover:text-ink"
-              >
-                clear schedule
-              </button>
-            )}
           </section>
         </aside>
       </div>

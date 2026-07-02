@@ -244,6 +244,31 @@ export async function updateWork(rawInput: UpdateWorkInput) {
   if (input.publishedAt !== undefined) patch.published_at = input.publishedAt;
   if (input.scheduledAt !== undefined) patch.scheduled_at = input.scheduledAt;
 
+  const { data: existing } = await supabase
+    .from("works")
+    .select("status, slug, title")
+    .eq("id", input.id)
+    .maybeSingle()
+    .returns<Pick<WorkRow, "status" | "slug" | "title"> | null>();
+
+  if (existing && existing.status === "draft" && input.title !== undefined) {
+    const safeTitle = input.title.trim() || "Untitled";
+    const oldSafeTitle = existing.title?.trim() || "";
+    if (safeTitle !== oldSafeTitle) {
+      let slug = slugify(safeTitle) || "untitled";
+      if (slug !== existing.slug) {
+        const { data: collision } = await supabase
+          .from("works")
+          .select("id")
+          .eq("slug", slug)
+          .maybeSingle()
+          .returns<{ id: string } | null>();
+        if (collision) slug = withSuffix(slug);
+        patch.slug = slug;
+      }
+    }
+  }
+
   const { data: rawData, error } = await supabase
     .from("works")
     .update(patch as never)
@@ -258,7 +283,7 @@ export async function updateWork(rawInput: UpdateWorkInput) {
   if (data?.status === "published") revalidateReadingSurfaces(data.slug);
   revalidatePath(`/studio/works/${input.id}`);
 
-  return { ok: true as const, savedAt: Date.now() };
+  return { ok: true as const, savedAt: Date.now(), slug: data?.slug ?? null };
 }
 
 /**
@@ -587,6 +612,31 @@ export async function updateChapter(rawInput: UpdateChapterInput) {
   if (input.readingMinutes !== undefined) patch.reading_minutes = input.readingMinutes;
   if (input.publishedAt !== undefined) patch.published_at = input.publishedAt;
 
+  const { data: existing } = await supabase
+    .from("chapters")
+    .select("status, slug, title")
+    .eq("id", input.id)
+    .maybeSingle()
+    .returns<Pick<ChapterRow, "status" | "slug" | "title"> | null>();
+
+  if (existing && existing.status === "draft" && input.title !== undefined) {
+    const safeTitle = input.title.trim() || "Untitled";
+    const oldSafeTitle = existing.title?.trim() || "";
+    if (safeTitle !== oldSafeTitle) {
+      let slug = slugify(safeTitle) || "untitled";
+      if (slug !== existing.slug) {
+        const { data: collision } = await supabase
+          .from("chapters")
+          .select("id")
+          .eq("slug", slug)
+          .maybeSingle()
+          .returns<{ id: string } | null>();
+        if (collision) slug = withSuffix(slug);
+        patch.slug = slug;
+      }
+    }
+  }
+
   const { data: rawData, error } = await supabase
     .from("chapters")
     .update(patch as never)
@@ -603,7 +653,7 @@ export async function updateChapter(rawInput: UpdateChapterInput) {
   }
   revalidatePath(`/studio/series/${data?.series_id ?? ""}/chapters/${input.id}`);
 
-  return { ok: true as const, savedAt: Date.now() };
+  return { ok: true as const, savedAt: Date.now(), slug: data?.slug ?? null };
 }
 
 export async function publishChapter(id: string) {

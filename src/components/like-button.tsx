@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { syncEntries } from "@/lib/reader-sync";
+import { hapticLight } from "@/lib/native";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -50,6 +51,7 @@ export function LikeButton({ keyId }: Props) {
       }
     ]);
     if (next) {
+      void hapticLight();
       setBursting(true);
       window.setTimeout(() => setBursting(false), BURST_MS);
     }
